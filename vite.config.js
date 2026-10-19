@@ -20,8 +20,13 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    outDir: 'dist',
+    // GitHub Pages is configured to serve this repository from the `/docs`
+    // folder of the working branch, so the production build lands there and
+    // is committed. Rename this to `dist` if you switch Pages over to the
+    // GitHub Actions source (see tools/pages-deploy.yml.example).
+    outDir: 'docs',
     assetsDir: 'assets',
+    emptyOutDir: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
   },

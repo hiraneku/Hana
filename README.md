@@ -76,7 +76,7 @@ starts instantly.
 ```bash
 npm install
 npm run dev        # http://localhost:5173/Hana/  (also on your LAN)
-npm run build      # static build in dist/
+npm run build      # static production build -> docs/
 npm run preview    # serve the production build
 npm run test:sim   # headless simulation test, no browser needed
 ```
@@ -117,9 +117,26 @@ tools/smoke.mjs        headless simulation test
 
 ## Deploying
 
-Pushing to `main` runs `.github/workflows/deploy.yml`: install → simulation test
-→ Vite build → publish `dist/` to GitHub Pages. Any branch can also be published
-by hand from the Actions tab ("Run workflow").
+GitHub Pages for this repository is configured the old-fashioned way: it serves
+the **`/docs` folder of a branch**. So `npm run build` writes the deployable
+site straight into `docs/`, and that folder is committed.
+
+```bash
+npm run build
+git add docs && git commit -m "Publish build"
+git push
+```
+
+Live at **https://hiraneku.github.io/Hana/**.
+
+If Pages is still pointing at an older branch, set it once in
+**Settings → Pages → Build and deployment → Deploy from a branch**, then pick
+this branch and the `/docs` folder.
+
+Prefer a real pipeline? `tools/pages-deploy.yml.example` is a GitHub Actions
+workflow (install → simulation test → build → upload artifact). Copy it to
+`.github/workflows/deploy.yml`, switch Pages to the *GitHub Actions* source,
+and every push to `main` publishes itself.
 
 ---
 
