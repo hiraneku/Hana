@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints. On desktop, use WASD + mouse, left click to fire, right mouse to aim, `R` to reload, `I` to inspect, `F` for the flashlight, and `Esc` to pause. On touchscreens, use the virtual joystick and on-screen action buttons. Landscape orientation is recommended.
+Open the URL Vite prints. On desktop, use WASD + mouse, left click to slash, `I` to inspect the knife, `F` for the flashlight, and `Esc` to pause. On touchscreens, use the virtual joystick and the on-screen slash button. Landscape orientation is recommended.
 
 ## Publish with GitHub Pages (no Actions workflow required)
 
@@ -21,4 +21,4 @@ Vite writes the production site into `docs/`, with asset URLs set for the `/Hana
 
 ## Prototype scope
 
-One atmospheric industrial alley, a procedural G17-style sidearm viewmodel with reload / inspect / recoil animations, three basic infected, touch controls, and an offline single-player loop. All 3D objects and audio are generated locally at runtime; no remote assets or backend are required.
+One atmospheric industrial alley, a procedural drop-point field knife viewmodel with a smooth wind-up / slash / follow-through animation, three basic infected, touch controls, and an offline single-player loop. All 3D objects and audio are generated locally at runtime; no remote assets or backend are required.

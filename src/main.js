@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import './style.css';
 import { createEnvironment, createZombie, updateZombiePose } from './world.js';
-import { createG17 } from './weapon.js';
+import { createKnife } from './weapon.js';
 import { createAudio } from './audio.js';
 
 const canvas = document.querySelector('#world');
@@ -21,9 +21,6 @@ const ui = {
   health: document.querySelector('#health-value'),
   healthFill: document.querySelector('#health-fill'),
   healthWidget: document.querySelector('.health-widget'),
-  ammo: document.querySelector('#ammo'),
-  reserve: document.querySelector('#reserve'),
-  ammoWidget: document.querySelector('.ammo-widget'),
   damageFlash: document.querySelector('#damage-flash'),
   endEyebrow: document.querySelector('#end-eyebrow'),
   endTitle: document.querySelector('#end-title'),
@@ -88,7 +85,7 @@ moonGlow.position.set(6, 5, -18);
 scene.add(moonGlow);
 
 const environment = createEnvironment(scene);
-const weapon = createG17(camera, scene);
+const weapon = createKnife(camera);
 
 const flashlightTarget = new THREE.Object3D();
 flashlightTarget.position.set(0, -.015, -12);
@@ -115,23 +112,17 @@ const bloodMaterials = [
   new THREE.MeshBasicMaterial({ color: 0x9b4536, transparent: true, opacity: .92, depthWrite: false }),
 ];
 const keys = new Set();
-const maxAmmo = 17;
-
-let ammo = maxAmmo;
-let reserve = 68;
 let health = 100;
 let kills = 0;
 let gameActive = false;
 let paused = false;
 let missionComplete = false;
-let aiming = false;
 let flashlightOn = false;
 let moving = false;
 let elapsed = 0;
 let yaw = 0;
 let pitch = 0;
 let recoilPitch = 0;
-let fireCooldown = 0;
 let damageCooldown = 0;
 let mouseLook = false;
 let lookPointer = null;
@@ -158,9 +149,6 @@ function updateHud() {
   ui.health.textContent = String(Math.max(0, Math.ceil(health)));
   ui.healthFill.style.width = `${Math.max(0, health)}%`;
   ui.healthWidget.classList.toggle('critical', health <= 30);
-  ui.ammo.textContent = String(ammo).padStart(2, '0');
-  ui.reserve.textContent = String(reserve).padStart(2, '0');
-  ui.ammoWidget.classList.toggle('low-ammo', ammo <= 3);
 }
 updateHud();
 
@@ -208,10 +196,10 @@ function damagePlayer(amount) {
   }
 }
 
-function damageZombie(zombie, hit) {
+function damageZombie(zombie, hit, damageOverride = null) {
   if (!zombie || zombie.userData.dead) return;
   const headshot = Boolean(hit.object.userData.isHead);
-  const damage = headshot ? 120 : 42;
+  const damage = damageOverride ?? (headshot ? 120 : 42);
   zombie.userData.health -= damage;
   spawnBlood(hit.point, headshot);
   audio.impact();
@@ -228,38 +216,48 @@ function damageZombie(zombie, hit) {
     }
   } else {
     // Brief flinch before it resumes advancing.
-    zombie.userData.hitFlash = .11;
+    zombie.userData.hitFlash = damageOverride === null ? .11 : .28;
   }
 }
 
-function fireWeapon() {
-  if (!gameActive || paused || missionComplete || weapon.reloading || weapon.inspecting || fireCooldown > 0) return;
-  if (ammo <= 0) {
-    if (reserve > 0) startReload();
-    else audio.click();
-    return;
-  }
-  if (!weapon.fire()) return;
-  ammo -= 1;
-  fireCooldown = .19;
-  recoilPitch = Math.min(.05, recoilPitch + .018);
-  audio.fire();
-  updateHud();
+function attackWithKnife() {
+  if (!gameActive || paused || missionComplete || weapon.attacking || weapon.inspecting) return;
+  if (!weapon.attack()) return;
+}
 
+function resolveKnifeHit() {
+  if (!gameActive || paused || missionComplete) return;
   camera.updateMatrixWorld(true);
   raycaster.setFromCamera(centerAim, camera);
   const targets = zombies.filter((zombie) => !zombie.userData.dead);
+  const savedFar = raycaster.far;
+  raycaster.far = 2.15;
   const intersections = raycaster.intersectObjects(targets, true);
+  raycaster.far = savedFar;
   const firstHit = intersections.find((intersection) => intersection.object.visible && intersection.object.userData.zombieRoot);
-  if (firstHit) damageZombie(firstHit.object.userData.zombieRoot, firstHit);
-}
-
-function startReload() {
-  if (ammo >= maxAmmo || reserve <= 0 || !gameActive || paused || missionComplete) {
+  if (firstHit) {
+    damageZombie(firstHit.object.userData.zombieRoot, firstHit, firstHit.object.userData.isHead ? 100 : 60);
+    recoilPitch = Math.min(.035, recoilPitch + .012);
     return;
   }
-  if (weapon.startReload(ammo === 0)) {
-    audio.reload();
+
+  // A small, forgiving melee cone avoids requiring pixel-perfect touch aim at arm's length.
+  camera.getWorldDirection(forward);
+  let closest = null;
+  let closestDistance = 2.2;
+  for (const zombie of targets) {
+    const point = new THREE.Vector3(zombie.position.x, zombie.position.y + 1.08, zombie.position.z);
+    const toTarget = point.clone().sub(camera.position);
+    const distance = toTarget.length();
+    const alignment = toTarget.normalize().dot(forward);
+    if (distance <= closestDistance && alignment > .92) {
+      closest = { zombie, point };
+      closestDistance = distance;
+    }
+  }
+  if (closest) {
+    damageZombie(closest.zombie, { object: { userData: { isHead: false } }, point: closest.point }, 60);
+    recoilPitch = Math.min(.035, recoilPitch + .012);
   }
 }
 
@@ -289,8 +287,6 @@ function beginGame() {
 function pauseGame() {
   if (!gameActive || paused) return;
   paused = true;
-  aiming = false;
-  document.querySelector('#aim-button').classList.remove('active');
   pauseScreen.classList.remove('hidden');
   if (document.pointerLockElement) document.exitPointerLock();
 }
@@ -310,8 +306,6 @@ function gameOver(won) {
   if (paused && !won) return;
   gameActive = false;
   paused = false;
-  aiming = false;
-  document.querySelector('#aim-button').classList.remove('active');
   if (document.pointerLockElement) document.exitPointerLock();
   pauseScreen.classList.add('hidden');
   endScreen.classList.remove('hidden');
@@ -335,15 +329,11 @@ function resetMission() {
   yaw = 0;
   pitch = 0;
   health = 100;
-  ammo = maxAmmo;
-  reserve = 68;
   kills = 0;
   missionComplete = false;
   flashlightOn = false;
   flashlight.intensity = 0;
   flashButton.classList.remove('active');
-  aiming = false;
-  document.querySelector('#aim-button').classList.remove('active');
   joystickInput = { x: 0, y: 0 };
   gameActive = false;
   paused = false;
@@ -419,7 +409,6 @@ function updateZombies(dt) {
 function updateFrame(dt) {
   elapsed += dt;
   environment.update(dt, elapsed);
-  fireCooldown = Math.max(0, fireCooldown - dt);
   damageCooldown = Math.max(0, damageCooldown - dt);
   activeClock += gameActive && !paused ? dt : 0;
   if (gameActive && !paused) updatePlayer(dt);
@@ -430,22 +419,12 @@ function updateFrame(dt) {
   updateZombies(dt);
   updateParticles(dt);
   weapon.update(gameActive && !paused ? dt : 0, elapsed, {
-    aiming: aiming && gameActive && !paused,
     moving: moving && gameActive && !paused,
     lookX: mouseLook ? (lastLookX || 0) * .01 : 0,
     lookY: mouseLook ? (lastLookY || 0) * .01 : 0,
-    onReloadComplete: () => {
-      const loaded = Math.min(maxAmmo - ammo, reserve);
-      ammo += loaded;
-      reserve -= loaded;
-      updateHud();
-    },
+    onSwing: () => audio.swing(),
+    onAttackHit: resolveKnifeHit,
   });
-  const targetFov = weapon.aimBlend > 0 ? THREE.MathUtils.lerp(68, 56, weapon.aimBlend) : 68;
-  if (Math.abs(camera.fov - targetFov) > .02) {
-    camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 9, dt);
-    camera.updateProjectionMatrix();
-  }
   renderer.render(scene, camera);
   frameCount++;
   currentFpsTime += dt;
@@ -491,14 +470,11 @@ canvas.addEventListener('pointerdown', (event) => {
       const lockRequest = canvas.requestPointerLock();
       lockRequest?.catch?.(() => {});
     }
-    fireWeapon();
-  } else if (event.button === 2) {
-    aiming = true;
+    attackWithKnife();
   }
 });
 canvas.addEventListener('pointerup', (event) => {
   if (event.button === 0) mouseLook = false;
-  if (event.button === 2) aiming = false;
 });
 canvas.addEventListener('pointermove', (event) => {
   if (event.pointerType !== 'touch' || lookPointer !== event.pointerId) return;
@@ -547,7 +523,6 @@ document.addEventListener('keydown', (event) => {
   if (!gameActive || paused) return;
   keys.add(event.code);
   if (event.repeat) return;
-  if (event.code === 'KeyR') startReload();
   if (event.code === 'KeyI') {
     if (weapon.startInspect()) {
       audio.click();
@@ -602,30 +577,13 @@ function releaseJoystick(event) {
 joystick.addEventListener('pointerup', releaseJoystick);
 joystick.addEventListener('pointercancel', releaseJoystick);
 
-const fireButton = document.querySelector('#fire-button');
-fireButton.addEventListener('pointerdown', (event) => {
+const attackButton = document.querySelector('#attack-button');
+attackButton.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   if (gameActive && !paused) {
     audio.resume();
-    fireWeapon();
+    attackWithKnife();
   }
-});
-const aimButton = document.querySelector('#aim-button');
-function setAim(value) {
-  aiming = value;
-  aimButton.classList.toggle('active', value);
-}
-aimButton.addEventListener('pointerdown', (event) => {
-  event.preventDefault();
-  if (!gameActive || paused) return;
-  setAim(true);
-});
-for (const eventName of ['pointerup', 'pointercancel', 'pointerleave']) {
-  aimButton.addEventListener(eventName, () => setAim(false));
-}
-document.querySelector('#reload-button').addEventListener('pointerdown', (event) => {
-  event.preventDefault();
-  if (gameActive && !paused) startReload();
 });
 document.querySelector('#inspect-button').addEventListener('pointerdown', (event) => {
   event.preventDefault();

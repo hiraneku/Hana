@@ -69,11 +69,11 @@ button { color: inherit; font: inherit; }
 .corner-stamp i { width: 48px; height: 48px; border: 1px solid rgba(179,63,51,.45); border-radius: 50%; box-shadow: inset 0 0 0 5px rgba(179,63,51,.07); }
 .corner-stamp i:after { content: ''; display: block; margin: 11px; width: 24px; height: 24px; border: 1px dashed rgba(179,63,51,.48); border-radius: 50%; }
 
-/* Minimal combat readouts: health and ammunition only. */
+/* Minimal combat readout: health only for the knife loadout. */
 .hud { position: absolute; z-index: 5; inset: 0; pointer-events: none; }
 .damage-flash { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, transparent 38%, rgba(157,30,27,.62) 100%); transition: opacity .15s; }
 .damage-flash.show { opacity: 1; }
-.health-widget, .ammo-widget {
+.health-widget {
   position: absolute;
   bottom: max(30px, env(safe-area-inset-bottom));
   min-height: 67px;
@@ -89,7 +89,7 @@ button { color: inherit; font: inherit; }
 .health-glyph i, .health-glyph b { position: absolute; display: block; background: #d3e3b5; border-radius: 1px; }
 .health-glyph i { width: 14px; height: 3px; }.health-glyph b { width: 3px; height: 14px; }
 .health-readout { flex: 1; min-width: 0; }
-.health-label, .ammo-label { color: #909b8d; font: 8px var(--mono); letter-spacing: .17em; }
+.health-label { color: #909b8d; font: 8px var(--mono); letter-spacing: .17em; }
 .health-number { display: flex; align-items: baseline; gap: 5px; margin: 1px 0 5px; }
 .health-number strong { color: #e4e8da; font: 600 22px/.95 var(--mono); letter-spacing: -.06em; }
 .health-number small { color: #778276; font: 8px var(--mono); letter-spacing: .1em; }
@@ -99,14 +99,6 @@ button { color: inherit; font: inherit; }
 .health-widget.critical .health-glyph { border-color: rgba(215,92,79,.7); }.health-widget.critical .health-glyph i, .health-widget.critical .health-glyph b { background: #e17a6d; }
 .health-widget.critical .health-number strong { color: #f09282; }
 @keyframes health-warning { 50% { box-shadow: 0 0 20px rgba(180,43,34,.14), inset 0 1px rgba(255,255,255,.025); } }
-.ammo-widget { right: max(31px, env(safe-area-inset-right)); min-width: 138px; justify-content: space-between; gap: 17px; padding: 10px 14px 10px 16px; border-right: 2px solid rgba(190,214,149,.66); }
-.ammo-widget:before { content: ''; position: absolute; right: -2px; bottom: -1px; width: 20px; height: 1px; background: rgba(217,229,201,.6); }
-.ammo-counter { display: flex; align-items: baseline; gap: 5px; color: #c5cbbd; }
-.ammo-counter strong { color: #e8eadf; font: 500 30px/.9 var(--mono); letter-spacing: -.09em; }
-.ammo-counter span { color: #626a61; font: 12px var(--mono); }
-.ammo-counter b { color: #8d9888; font: 500 14px var(--mono); }
-.ammo-widget.low-ammo .ammo-counter strong { color: #e27968; }
-.ammo-widget.low-ammo { border-right-color: rgba(220,94,76,.8); }
 .pause-button { position: absolute; z-index: 6; top: max(27px, env(safe-area-inset-top)); right: max(26px, env(safe-area-inset-right)); width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(210,222,199,.27); color: #c7d0bd; background: rgba(10,14,13,.52); cursor: pointer; pointer-events: auto; font: 11px var(--mono); }
 .pause-button:hover { border-color: var(--acid); color: var(--acid-bright); }
 
@@ -120,20 +112,18 @@ body.is-touch .mobile-controls { display: block; }
 .joystick-knob { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%,-50%); border: 1px solid rgba(218,231,198,.65); border-radius: 50%; background: radial-gradient(circle at 35% 28%, rgba(185,206,153,.38), rgba(73,90,66,.47) 72%, rgba(13,18,16,.8)); box-shadow: 0 3px 13px rgba(0,0,0,.45), inset 0 0 12px rgba(200,224,164,.16); transition: background .1s; }
 .joystick-knob span { position: absolute; width: 4px; height: 4px; left: 50%; top: 7px; border-radius: 50%; background: #deedc4; transform: translateX(-50%); }
 .joystick label { position: absolute; left: 50%; bottom: -14px; color: rgba(214,224,203,.64); font: 8px var(--mono); letter-spacing: .22em; transform: translateX(-50%); }
-.mobile-actions { position: absolute; right: max(25px, env(safe-area-inset-right)); bottom: max(27px, env(safe-area-inset-bottom)); width: min(244px, 34vw); height: 195px; pointer-events: none; }
+.mobile-actions { position: absolute; right: max(25px, env(safe-area-inset-right)); bottom: max(27px, env(safe-area-inset-bottom)); width: min(210px, 32vw); height: 166px; pointer-events: none; }
 .mobile-actions button { position: absolute; pointer-events: auto; display: grid; place-items: center; border: 1px solid rgba(222,230,212,.33); background: rgba(12,17,16,.56); backdrop-filter: blur(5px); color: #dce4d1; touch-action: none; }
 .action-button { width: 49px; height: 49px; border-radius: 50%; box-shadow: 0 4px 14px rgba(0,0,0,.24); }
 .action-button b { color: #b6c1ad; font: 7px var(--mono); letter-spacing: .07em; }
-.aim-button { right: 94px; top: 33px; }.aim-button .button-ring { position: absolute; inset: 7px; border: 1px solid rgba(205,218,193,.29); border-radius: 50%; }.aim-button b { margin-top: 20px; }
-.aim-button.active { border-color: var(--acid); background: rgba(127,151,94,.38); box-shadow: 0 0 17px rgba(192,217,152,.16); }
-.reload-button { right: 22px; top: 0; }.flash-button { right: 0; top: 67px; }
+.flash-button { right: 12px; top: 5px; }
 .flash-button.active { border-color: rgba(199,216,155,.78); color: var(--acid-bright); background: rgba(105,130,78,.48); }
 .button-icon { display: block; margin-top: 3px; color: #c6d3b5; font: 19px/1 var(--display); }
-.fire-button { right: 57px; bottom: 0; width: 78px; height: 78px; border-radius: 50%; border: 1px solid rgba(228,111,92,.8) !important; background: radial-gradient(circle at 50% 44%, rgba(145,47,39,.82), rgba(59,25,24,.84) 68%, rgba(18,18,16,.93)) !important; box-shadow: 0 0 0 5px rgba(172,65,53,.13), 0 8px 25px rgba(0,0,0,.38), inset 0 0 0 3px rgba(225,106,86,.13); }
-.fire-core { position: absolute; top: 17px; left: 50%; width: 15px; height: 15px; border: 1px solid rgba(255,222,190,.84); border-radius: 50%; transform: translateX(-50%); box-shadow: 0 0 11px rgba(255,134,96,.45); }
-.fire-button b { position: absolute; bottom: 14px; font: 8px var(--mono); letter-spacing: .13em; color: #f1d8c8; }
-.fire-button:active { transform: scale(.94); filter: brightness(1.2); }
-.inspect-button { right: 143px; bottom: 15px; height: 27px; padding: 0 8px; font: 7px var(--mono); letter-spacing: .08em; border-color: rgba(210,223,193,.2) !important; }
+.attack-button { position: absolute; right: 8px; bottom: 0; width: 82px; height: 82px; border: 1px solid rgba(203,215,190,.72) !important; border-radius: 50%; background: radial-gradient(circle at 42% 34%, rgba(101,111,83,.84), rgba(34,41,35,.92) 68%, rgba(14,18,16,.96)) !important; box-shadow: 0 0 0 5px rgba(184,199,157,.1), 0 8px 25px rgba(0,0,0,.4), inset 0 0 0 3px rgba(216,226,199,.1); }
+.attack-mark { position: absolute; top: 22px; left: 50%; width: 24px; height: 3px; border-radius: 3px; transform: translateX(-50%) rotate(-48deg); background: linear-gradient(90deg, #69756c, #e0e7d7 50%, #7c897b); box-shadow: 0 0 10px rgba(219,230,204,.35); }
+.attack-button b { position: absolute; bottom: 15px; color: #e1e8d5; font: 8px var(--mono); letter-spacing: .13em; }
+.attack-button:active { transform: scale(.94); filter: brightness(1.2); }
+.inspect-button { right: 105px; bottom: 23px; height: 27px; padding: 0 8px; font: 7px var(--mono); letter-spacing: .08em; border-color: rgba(210,223,193,.2) !important; }
 .look-zone { position: absolute; inset: 0 31% 0 28%; pointer-events: none; touch-action: none; }
 
 /* Pause / debrief */
@@ -163,12 +153,12 @@ body.is-touch .mobile-controls { display: block; }
   .desktop-note { display: none; }.touch-note { display: inline; }
   .corner-stamp { display: none; }.intro-bottom { font-size: 6px; }
   .joystick { width: 100px; height: 100px; bottom: max(29px, env(safe-area-inset-bottom)); left: max(18px, env(safe-area-inset-left)); }.joystick-knob { width: 38px; height: 38px; }.joystick label { font-size: 6px; bottom: -12px; }
-  .mobile-actions { width: 180px; height: 151px; bottom: max(20px, env(safe-area-inset-bottom)); right: max(12px, env(safe-area-inset-right)); transform: scale(.86); transform-origin: bottom right; }
-  .action-button { width: 42px; height: 42px; }.aim-button { right: 80px; top: 30px; }.reload-button { right: 17px; top: 0; }.flash-button { right: 0; top: 57px; }
-  .fire-button { right: 46px; width: 68px; height: 68px; }.fire-core { top: 13px; }.fire-button b { bottom: 12px; font-size: 7px; }.inspect-button { right: 116px; bottom: 13px; height: 24px; padding: 0 6px; font-size: 6px; }
+  .mobile-actions { width: 180px; height: 142px; bottom: max(20px, env(safe-area-inset-bottom)); right: max(12px, env(safe-area-inset-right)); transform: scale(.86); transform-origin: bottom right; }
+  .action-button { width: 42px; height: 42px; }.flash-button { right: 9px; top: 2px; }
+  .attack-button { right: 4px; width: 70px; height: 70px; }.attack-mark { top: 18px; width: 21px; }.attack-button b { bottom: 12px; font-size: 7px; }.inspect-button { right: 91px; bottom: 18px; height: 24px; padding: 0 6px; font-size: 6px; }
 }
 @media (max-width: 860px) {
-  body.is-touch .health-widget, body.is-touch .ammo-widget {
+  body.is-touch .health-widget {
     top: max(17px, env(safe-area-inset-top));
     bottom: auto;
     min-height: 56px;
@@ -177,21 +167,16 @@ body.is-touch .mobile-controls { display: block; }
   body.is-touch .health-glyph { flex-basis: 26px; width: 26px; height: 26px; }
   body.is-touch .health-glyph i { width: 11px; height: 2px; } body.is-touch .health-glyph b { width: 2px; height: 11px; }
   body.is-touch .health-number strong { font-size: 18px; }
-  body.is-touch .ammo-widget { right: max(17px, env(safe-area-inset-right)); min-width: 112px; padding: 8px 10px 8px 12px; gap: 12px; }
-  body.is-touch .ammo-counter strong { font-size: 24px; }
-  body.is-touch .ammo-counter b { font-size: 12px; }
   body.is-touch .pause-button { left: 50%; right: auto; top: max(19px, env(safe-area-inset-top)); transform: translateX(-50%); width: 24px; height: 24px; }
 }
 @media (max-width: 600px) {
-  body.is-touch .health-widget, body.is-touch .ammo-widget { top: max(13px, env(safe-area-inset-top)); }
+  body.is-touch .health-widget { top: max(13px, env(safe-area-inset-top)); }
   body.is-touch .health-widget { width: 130px; min-height: 49px; padding: 6px 8px; gap: 7px; }
   body.is-touch .health-glyph { flex-basis: 22px; width: 22px; height: 22px; }
   body.is-touch .health-glyph i { width: 9px; } body.is-touch .health-glyph b { height: 9px; }
-  body.is-touch .health-label, body.is-touch .ammo-label { font-size: 6px; }
+  body.is-touch .health-label { font-size: 6px; }
   body.is-touch .health-number { margin: 0 0 3px; }.health-number strong { font-size: 16px; }
   body.is-touch .health-track { height: 2px; }
-  body.is-touch .ammo-widget { min-width: 92px; min-height: 49px; padding: 6px 8px; gap: 7px; }
-  body.is-touch .ammo-counter strong { font-size: 21px; }.ammo-counter b { font-size: 10px; }
   body.is-touch .pause-button { top: max(13px, env(safe-area-inset-top)); }
 }
 @media (max-height: 480px) {

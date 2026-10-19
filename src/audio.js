@@ -120,18 +120,25 @@ export function createAudio() {
 
   return {
     resume,
-    fire() {
-      transient({ duration: .125, gain: .48, filter: 1600, highpass: 90 });
-      tone(84, .12, .3, 'triangle', 40);
-      transient({ duration: .035, gain: .19, filter: 5200, highpass: 1700 });
-    },
-    reload() {
-      click(.06, .82);
-      transient({ duration: .085, gain: .14, filter: 950, highpass: 220 });
-      click(.47, 1.12);
-      transient({ duration: .11, gain: .18, filter: 1250, highpass: 170 });
-      click(.91, .93);
-      click(1.22, 1.23);
+    swing() {
+      const ctx = ensureContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const source = ctx.createBufferSource();
+      source.buffer = createNoiseBuffer();
+      const band = ctx.createBiquadFilter();
+      band.type = 'bandpass';
+      band.Q.value = .72;
+      band.frequency.setValueAtTime(1450, now);
+      band.frequency.exponentialRampToValueAtTime(320, now + .24);
+      const envelope = ctx.createGain();
+      envelope.gain.setValueAtTime(.0001, now);
+      envelope.gain.exponentialRampToValueAtTime(.095, now + .035);
+      envelope.gain.exponentialRampToValueAtTime(.0001, now + .26);
+      source.connect(band).connect(envelope).connect(master);
+      source.start(now);
+      source.stop(now + .28);
+      tone(185, .14, .022, 'triangle', 88);
     },
     step() {
       transient({ duration: .09, gain: .065, filter: 420, highpass: 45 });
