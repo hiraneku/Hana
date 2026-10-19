@@ -60,8 +60,8 @@ const EYE = new THREE.Color(0xd6ff5a);
 // long before you can make out the body — the first thing you ever see is a
 // pair of eyes sliding out of the fog.
 const EYE_GEO = part([
-  [0.055, 0.045, 0.03, -0.07, 1.81, -0.152, EYE],
-  [0.055, 0.045, 0.03, 0.07, 1.81, -0.152, EYE],
+  [0.075, 0.055, 0.035, -0.072, 1.81, -0.155, EYE],
+  [0.075, 0.055, 0.035, 0.072, 1.81, -0.155, EYE],
 ]);
 
 const BASE_MAT = new THREE.MeshLambertMaterial({
@@ -385,7 +385,7 @@ export class Zombie {
     // Cheap LOD: skip animation work for anything the fog has already eaten,
     // and only pay for the eyes when they are close enough to read.
     this.group.visible = dist < 52;
-    this.eyes.visible = dist < 26;
+    this.eyes.visible = dist < 34;
   }
 }
 

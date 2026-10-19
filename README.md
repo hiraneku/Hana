@@ -94,13 +94,20 @@ npm run preview    # serve the production build
 npm run test:sim   # headless simulation test, no browser needed
 ```
 
-### `npm run test:sim`
+### `npm test`
 
-There is no WebGL in a terminal, so the test drives the *real* game modules —
-arena, player, horde, weapon, particles — for thousands of frames and asserts
-the simulation holds up: zombies actually reach you, nobody gets stuck inside a
-crate, bullets do not pass through walls, the player cannot escape the yard, and
-no NaN sneaks into a position.
+Two suites, both headless:
+
+- **`npm run test:sim`** — no WebGL in a terminal, so this drives the *real*
+  game modules (arena, player, horde, weapon, particles) for thousands of
+  frames and asserts the simulation holds up: zombies actually reach you,
+  nobody gets stuck inside a crate, bullets do not pass through walls, the
+  player cannot escape the yard, and no NaN sneaks into a position.
+- **`npm run test:ui`** — the real DOM under jsdom: dual-stick drag produces
+  movement and look, both thumbs work at once, the action buttons fire, and
+  taps on the HUD do not move the player. This one exists because of a bug
+  that shipped: the touch layer is `pointer-events: none`, so a listener
+  attached to the layer itself never fired — you could shoot but never walk.
 
 ### Layout
 

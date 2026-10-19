@@ -54,49 +54,19 @@ export class Player {
   }
 
   _buildFlashlight() {
-    const light = new THREE.SpotLight(0xfff2d6, 150, 60, 0.5, 0.65, 1.2);
-    light.position.set(0.16, -0.14, 0.05);
+    // A tight, warm cone with a soft edge and a fairly steep falloff so the
+    // beam has a real shape: bright at your feet, swallowed by the dark a few
+    // metres out. (An earlier version added a fake volumetric cone mesh — it
+    // read as a glowing triangle pasted over the screen, so it is gone.)
+    const light = new THREE.SpotLight(0xffe9c4, 190, 52, 0.52, 0.72, 1.5);
+    light.position.set(0.14, -0.12, 0.05);
     const target = new THREE.Object3D();
-    target.position.set(0, 0, -1);
+    target.position.set(0, -0.05, -1);
     this.camera.add(light);
     this.camera.add(target);
     light.target = target;
     this.flashlight = light;
-    this.flashBase = 150;
-
-    // Fake volumetric shaft: a cone with a gradient baked into vertex colours
-    // and additive blending. Cheap, and it sells the torch more than the
-    // spotlight alone ever does.
-    const H = 17;
-    const R = 4.2;
-    const geo = new THREE.ConeGeometry(R, H, 20, 1, true);
-    geo.translate(0, -H / 2, 0); // apex at the origin
-    geo.rotateX(Math.PI / 2); // body runs toward -Z, i.e. forward
-    const p = geo.attributes.position;
-    const colors = new Float32Array(p.count * 3);
-    for (let i = 0; i < p.count; i++) {
-      const t = Math.min(1, Math.abs(p.getZ(i)) / H);
-      const a = Math.pow(1 - t, 2.3) * 0.15;
-      colors[i * 3] = a;
-      colors[i * 3 + 1] = a * 0.94;
-      colors[i * 3 + 2] = a * 0.78;
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const beam = new THREE.Mesh(
-      geo,
-      new THREE.MeshBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        fog: false,
-      })
-    );
-    beam.position.set(0.16, -0.14, 0);
-    beam.frustumCulled = false;
-    this.camera.add(beam);
-    this.beam = beam;
+    this.flashBase = 190;
   }
 
   /** Dying-battery flicker for the torch. */
@@ -107,10 +77,9 @@ export class Player {
       this.torchDip = Math.random() < 0.3 ? 0.2 + Math.random() * 0.5 : 0;
     }
     if (this.torchDip > 0) this.torchDip -= dt;
-    const dip = this.torchDip > 0 ? 0.42 : 1;
+    const dip = this.torchDip > 0 ? 0.45 : 1;
     const hum = 0.94 + 0.06 * Math.sin(this.bob * 0.7);
     this.flashlight.intensity = this.flashBase * dip * hum;
-    if (this.beam) this.beam.visible = dip > 0.6;
   }
 
   get forward() {

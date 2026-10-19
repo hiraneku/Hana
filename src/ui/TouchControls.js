@@ -86,8 +86,18 @@ export class TouchControls {
   }
 
   _bindSticks() {
-    this.layer.addEventListener('pointerdown', (e) => {
+    // IMPORTANT: this listens on `window`, not on the layer. The layer is
+    // `pointer-events: none` so that the HUD underneath stays clickable —
+    // which also means it never receives events itself. Listening globally
+    // catches the touches that pass straight through it.
+    window.addEventListener('pointerdown', (e) => {
       if (!this.enabled || this.pointers.size >= 2) return;
+      if (e.button === 2) return; // right button belongs to mouse-look
+
+      // Let the action buttons, the HUD and the menus handle their own taps.
+      const t = e.target;
+      if (t && t.closest && t.closest('.touch-btn, #hud, .overlay, #fx-layer')) return;
+
       const zone = e.clientX < window.innerWidth * 0.5 ? 'move' : 'look';
       // Never steal a pointer that is already driving the other stick.
       for (const p of this.pointers.values()) if (p.zone === zone) return;

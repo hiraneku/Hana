@@ -32,7 +32,7 @@ export class Arena {
     scene.add(this.group);
 
     this.mat = {
-      asphalt: new THREE.MeshLambertMaterial({ color: 0x15181c }),
+      asphalt: new THREE.MeshLambertMaterial({ color: 0x1b1f24 }),
       concrete: new THREE.MeshLambertMaterial({ color: 0x3c4249 }),
       rust: new THREE.MeshLambertMaterial({ color: 0x6b4634 }),
       metal: new THREE.MeshLambertMaterial({ color: 0x545c66 }),
@@ -381,10 +381,10 @@ export class Arena {
   // ------------------------------------------------------------------ lights
 
   _lights() {
-    // Deliberately starved: the yard should read as almost pitch black, lit
-    // only by the moon, your torch and the few lamps that still work.
-    this.scene.add(new THREE.AmbientLight(0x22303f, 0.34));
-    this.scene.add(new THREE.HemisphereLight(0x2b3a52, 0x07090b, 0.3));
+    // Low, but not blacked out: you need a faint moonlit base or every dark
+    // surface turns into the same shapeless mush on a phone screen.
+    this.scene.add(new THREE.AmbientLight(0x2a3a4c, 0.5));
+    this.scene.add(new THREE.HemisphereLight(0x33465f, 0x0a0d10, 0.45));
 
     const moon = new THREE.DirectionalLight(0x93a9cf, 0.9);
     moon.position.set(26, 40, -20);
@@ -407,7 +407,7 @@ export class Arena {
     const bulbGeo = new THREE.SphereGeometry(0.2, 8, 6);
     LAMP_SPOTS.forEach(([x, z], i) => {
       const y = 4.15;
-      const base = 55;
+      const base = 78;
 
       // Every lamp gets a glowing bulb, but only the first `maxLamps` get a
       // real light — each point light costs shader time on every pixel, and

@@ -25,7 +25,7 @@ export class Engine {
     this.renderer.shadowMap.enabled = !this.isTouch;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.28;
     this.renderer.domElement.id = 'game-canvas';
     container.appendChild(this.renderer.domElement);
 
@@ -40,8 +40,10 @@ export class Engine {
     // Cheap "infinite" world: dense fog hides the draw distance so we can
     // keep the scene tiny and still feel like a big, dark place. The tint is
     // a sickly blue-green — the colour of a city that lost power.
-    this.scene.fog = new THREE.FogExp2(0x0a1214, 0.062);
-    this.scene.background = new THREE.Color(0x080e10);
+    // Dense enough to hide the edge of the world, thin enough that you can
+    // still see them coming.
+    this.scene.fog = new THREE.FogExp2(0x0b1114, 0.042);
+    this.scene.background = new THREE.Color(0x0a1013);
 
     this._loop = this._loop.bind(this);
     this._onResize = () => this.resize();

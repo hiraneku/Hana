@@ -21,7 +21,7 @@ class Game {
 
     this.arena = new Arena(this.engine.scene, {
       shadows: !isTouch,
-      maxLamps: isTouch ? 3 : 5,
+      maxLamps: isTouch ? 4 : 5,
     });
 
     this.input = new Input(this.engine.renderer.domElement);
