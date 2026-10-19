@@ -14,22 +14,17 @@ const startButton = document.querySelector('#start-button');
 const resumeButton = document.querySelector('#resume-button');
 const restartButton = document.querySelector('#restart-button');
 const pauseButton = document.querySelector('#pause-button');
+const flashButton = document.querySelector('#flash-button');
 const body = document.body;
 
 const ui = {
   health: document.querySelector('#health-value'),
   healthFill: document.querySelector('#health-fill'),
+  healthWidget: document.querySelector('.health-widget'),
   ammo: document.querySelector('#ammo'),
   reserve: document.querySelector('#reserve'),
-  enemies: document.querySelector('#enemy-count'),
-  kills: document.querySelector('#kill-count'),
-  objective: document.querySelector('#objective'),
-  weaponMode: document.querySelector('#weapon-mode'),
-  reloadFill: document.querySelector('#reload-fill'),
-  hitmarker: document.querySelector('#hitmarker'),
+  ammoWidget: document.querySelector('.ammo-widget'),
   damageFlash: document.querySelector('#damage-flash'),
-  toast: document.querySelector('#toast'),
-  reticle: document.querySelector('#reticle'),
   endEyebrow: document.querySelector('#end-eyebrow'),
   endTitle: document.querySelector('#end-title'),
   endCopy: document.querySelector('#end-copy'),
@@ -113,7 +108,6 @@ const playerPosition = new THREE.Vector3(0, 0, 6.7);
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
 const moveVector = new THREE.Vector3();
-const temporaryVector = new THREE.Vector3();
 const zombies = [];
 const bloodParticles = [];
 const bloodMaterials = [
@@ -139,14 +133,12 @@ let pitch = 0;
 let recoilPitch = 0;
 let fireCooldown = 0;
 let damageCooldown = 0;
-let toastTimeout = 0;
 let mouseLook = false;
 let lookPointer = null;
 let lastLookX = 0;
 let lastLookY = 0;
 let joystickPointer = null;
 let joystickInput = { x: 0, y: 0 };
-let pointerAim = false;
 let activeClock = 0;
 let lastFootstep = 0;
 let currentFpsTime = 0;
@@ -159,38 +151,18 @@ function initializeZombies() {
   zombies.push(createZombie(scene, [-.12, 0, -5.7], 0));
   zombies.push(createZombie(scene, [2.55, 0, -12.8], 1));
   zombies.push(createZombie(scene, [-2.5, 0, -19.2], 2));
-  ui.enemies.textContent = String(zombies.length);
 }
 initializeZombies();
 
 function updateHud() {
   ui.health.textContent = String(Math.max(0, Math.ceil(health)));
   ui.healthFill.style.width = `${Math.max(0, health)}%`;
-  ui.healthFill.style.background = health < 32
-    ? 'linear-gradient(90deg,#9a3a32,#d36250)'
-    : 'linear-gradient(90deg,#8ca66e,#cad99d)';
+  ui.healthWidget.classList.toggle('critical', health <= 30);
   ui.ammo.textContent = String(ammo).padStart(2, '0');
   ui.reserve.textContent = String(reserve).padStart(2, '0');
-  ui.kills.textContent = `${kills} ELIMINASI`;
-  ui.enemies.textContent = String(zombies.filter((zombie) => !zombie.userData.dead).length);
-  ui.weaponMode.textContent = flashlightOn ? 'SEMI-AUTO · LAMPU ON' : 'SEMI-AUTO';
+  ui.ammoWidget.classList.toggle('low-ammo', ammo <= 3);
 }
 updateHud();
-
-function showToast(message, duration = 1.7) {
-  ui.toast.textContent = message;
-  ui.toast.classList.add('show');
-  window.clearTimeout(toastTimeout);
-  toastTimeout = window.setTimeout(() => ui.toast.classList.remove('show'), duration * 1000);
-}
-
-function showHitmarker() {
-  ui.hitmarker.classList.remove('show');
-  // Force reflow so repeated hits can replay the small hit-confirmation animation.
-  void ui.hitmarker.offsetWidth;
-  ui.hitmarker.classList.add('show');
-  window.setTimeout(() => ui.hitmarker.classList.remove('show'), 280);
-}
 
 function spawnBlood(point, headshot = false) {
   const material = bloodMaterials[headshot ? 1 : 0];
@@ -229,7 +201,6 @@ function damagePlayer(amount) {
   window.setTimeout(() => ui.damageFlash.classList.remove('show'), 180);
   audio.damage();
   updateHud();
-  showToast('KONTAK — JAGA JARAK', 1.2);
   if (health <= 0) {
     health = 0;
     updateHud();
@@ -244,8 +215,6 @@ function damageZombie(zombie, hit) {
   zombie.userData.health -= damage;
   spawnBlood(hit.point, headshot);
   audio.impact();
-  showHitmarker();
-  if (headshot) showToast('TEMBAKAN KEPALA', .7);
   if (zombie.userData.health <= 0) {
     zombie.userData.health = 0;
     zombie.userData.dead = true;
@@ -255,8 +224,6 @@ function damageZombie(zombie, hit) {
     updateHud();
     if (zombies.every((enemy) => enemy.userData.dead)) {
       missionComplete = true;
-      ui.objective.textContent = 'AREA SEMENTARA AMAN';
-      showToast('SEKTOR 07 DIBERSIHKAN', 2.2);
       window.setTimeout(() => gameOver(true), 1750);
     }
   } else {
@@ -268,12 +235,8 @@ function damageZombie(zombie, hit) {
 function fireWeapon() {
   if (!gameActive || paused || missionComplete || weapon.reloading || weapon.inspecting || fireCooldown > 0) return;
   if (ammo <= 0) {
-    if (reserve > 0) {
-      showToast('MAGAZINE KOSONG · TEKAN R', 1.3);
-      startReload();
-    } else {
-      showToast('AMUNISI HABIS', 1.1);
-    }
+    if (reserve > 0) startReload();
+    else audio.click();
     return;
   }
   if (!weapon.fire()) return;
@@ -293,21 +256,17 @@ function fireWeapon() {
 
 function startReload() {
   if (ammo >= maxAmmo || reserve <= 0 || !gameActive || paused || missionComplete) {
-    if (ammo >= maxAmmo) showToast('MAGAZINE MASIH PENUH', .9);
-    else if (reserve <= 0) showToast('TIDAK ADA MAGAZINE CADANGAN', 1.3);
     return;
   }
   if (weapon.startReload(ammo === 0)) {
     audio.reload();
-    showToast('ISI ULANG', .8);
   }
 }
 
 function toggleFlashlight() {
   flashlightOn = !flashlightOn;
   flashlight.intensity = flashlightOn ? 38 : 0;
-  ui.weaponMode.textContent = flashlightOn ? 'SEMI-AUTO · LAMPU ON' : 'SEMI-AUTO';
-  showToast(flashlightOn ? 'SENTER DINYALAKAN' : 'SENTER DIMATIKAN', .85);
+  flashButton.classList.toggle('active', flashlightOn);
   audio.click();
 }
 
@@ -331,7 +290,6 @@ function pauseGame() {
   if (!gameActive || paused) return;
   paused = true;
   aiming = false;
-  ui.reticle.classList.remove('aiming');
   document.querySelector('#aim-button').classList.remove('active');
   pauseScreen.classList.remove('hidden');
   if (document.pointerLockElement) document.exitPointerLock();
@@ -383,6 +341,7 @@ function resetMission() {
   missionComplete = false;
   flashlightOn = false;
   flashlight.intensity = 0;
+  flashButton.classList.remove('active');
   aiming = false;
   document.querySelector('#aim-button').classList.remove('active');
   joystickInput = { x: 0, y: 0 };
@@ -430,7 +389,6 @@ function updatePlayer(dt) {
 
 function updateZombies(dt) {
   if (!gameActive || paused) return;
-  const alive = zombies.filter((zombie) => !zombie.userData.dead);
   for (const zombie of zombies) {
     if (zombie.userData.dead) {
       updateZombiePose(zombie, dt, elapsed);
@@ -456,8 +414,6 @@ function updateZombies(dt) {
     }
     updateZombiePose(zombie, dt, elapsed);
   }
-  const remaining = alive.length;
-  if (remaining > 0) ui.enemies.textContent = String(remaining);
 }
 
 function updateFrame(dt) {
@@ -483,10 +439,8 @@ function updateFrame(dt) {
       ammo += loaded;
       reserve -= loaded;
       updateHud();
-      showToast('MAGAZINE TERPASANG', .9);
     },
   });
-  ui.reloadFill.style.width = `${Math.round(weapon.reloadProgress * 100)}%`;
   const targetFov = weapon.aimBlend > 0 ? THREE.MathUtils.lerp(68, 56, weapon.aimBlend) : 68;
   if (Math.abs(camera.fov - targetFov) > .02) {
     camera.fov = THREE.MathUtils.damp(camera.fov, targetFov, 9, dt);
@@ -540,15 +494,11 @@ canvas.addEventListener('pointerdown', (event) => {
     fireWeapon();
   } else if (event.button === 2) {
     aiming = true;
-    ui.reticle.classList.add('aiming');
   }
 });
 canvas.addEventListener('pointerup', (event) => {
   if (event.button === 0) mouseLook = false;
-  if (event.button === 2) {
-    aiming = false;
-    ui.reticle.classList.remove('aiming');
-  }
+  if (event.button === 2) aiming = false;
 });
 canvas.addEventListener('pointermove', (event) => {
   if (event.pointerType !== 'touch' || lookPointer !== event.pointerId) return;
@@ -601,21 +551,12 @@ document.addEventListener('keydown', (event) => {
   if (event.code === 'KeyI') {
     if (weapon.startInspect()) {
       audio.click();
-      showToast('INSPEKSI SENJATA', .8);
     }
   }
   if (event.code === 'KeyF') toggleFlashlight();
-  if (event.code === 'Mouse2') {
-    aiming = true;
-    ui.reticle.classList.add('aiming');
-  }
 });
 document.addEventListener('keyup', (event) => {
   keys.delete(event.code);
-  if (event.code === 'Mouse2') {
-    aiming = false;
-    ui.reticle.classList.remove('aiming');
-  }
 });
 window.addEventListener('blur', () => {
   keys.clear();
@@ -673,7 +614,6 @@ const aimButton = document.querySelector('#aim-button');
 function setAim(value) {
   aiming = value;
   aimButton.classList.toggle('active', value);
-  ui.reticle.classList.toggle('aiming', value);
 }
 aimButton.addEventListener('pointerdown', (event) => {
   event.preventDefault();
@@ -691,7 +631,6 @@ document.querySelector('#inspect-button').addEventListener('pointerdown', (event
   event.preventDefault();
   if (gameActive && !paused && weapon.startInspect()) {
     audio.click();
-    showToast('INSPEKSI SENJATA', .8);
   }
 });
 document.querySelector('#flash-button').addEventListener('pointerdown', (event) => {

@@ -214,25 +214,73 @@ function setSegment(mesh, start, end) {
   mesh.scale.y = direction.length();
 }
 
-function buildGlove(parent, material, seamMaterial, scale = 1) {
+function addHandSegment(parent, start, end, radius, material) {
+  const a = new THREE.Vector3(...start);
+  const b = new THREE.Vector3(...end);
+  const direction = b.clone().sub(a);
+  const length = direction.length();
+  const geometry = new THREE.CapsuleGeometry(radius, Math.max(.001, length - radius * 2), 4, 7);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.copy(a).add(b).multiplyScalar(.5);
+  mesh.quaternion.setFromUnitVectors(UP, direction.normalize());
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
+function buildFiringHand(parent, material, seamMaterial) {
+  const hand = new THREE.Group();
+  // Palm sits behind the steep grip; fingers wrap around its front strap instead of forming a flat mitten.
+  roundedBox(hand, [.128, .174, .136], [0, -.205, .115], material, .045, 4);
+  roundedBox(hand, [.106, .042, .105], [0, -.119, .161], seamMaterial, .018, 3);
+
+  // Trigger finger: straight along the frame, then bent naturally inside the trigger guard.
+  addHandSegment(hand, [-.034, -.121, .158], [-.038, -.119, .065], .014, material);
+  addHandSegment(hand, [-.038, -.119, .065], [-.039, -.128, .005], .013, material);
+  addHandSegment(hand, [-.039, -.128, .005], [-.037, -.112, -.018], .011, material);
+  roundedBox(hand, [.022, .011, .024], [-.039, -.119, .045], seamMaterial, .005, 2);
+
+  // Three curled fingers follow the front contour of the grip. Their stagger makes the grasp read in close-up.
+  const fingerRows = [-.166, -.207, -.248];
+  fingerRows.forEach((y, index) => {
+    const x = -.052 + index * .003;
+    addHandSegment(hand, [x, y + .012, .171], [x - .002, y, .091], .015, material);
+    addHandSegment(hand, [x - .002, y, .091], [x - .004, y - .008, .012], .014, material);
+    addHandSegment(hand, [x - .004, y - .008, .012], [x - .003, y - .028, -.059], .013, material);
+    addHandSegment(hand, [x - .003, y - .028, -.059], [x + .002, y - .04, -.028], .012, material);
+    roundedBox(hand, [.018, .013, .024], [x - .007, y + .004, .091], seamMaterial, .006, 2);
+  });
+
+  // Thumb pad lays across the exposed side of the frame and anchors on the backstrap.
+  addHandSegment(hand, [-.064, -.123, .151], [-.079, -.16, .119], .019, material);
+  addHandSegment(hand, [-.079, -.16, .119], [-.078, -.207, .071], .018, material);
+  addHandSegment(hand, [-.078, -.207, .071], [-.068, -.226, .022], .016, material);
+  roundedBox(hand, [.008, .067, .043], [-.071, -.186, .12], seamMaterial, .008, 2);
+
+  // Small raised knuckle pads and a fabric seam keep the glove from reading as a smooth toy hand.
+  for (let i = 0; i < 3; i++) {
+    const y = fingerRows[i] + .003;
+    roundedBox(hand, [.018, .014, .026], [-.067, y, .103], seamMaterial, .006, 2);
+  }
+  parent.add(hand);
+  return hand;
+}
+
+function buildSupportHand(parent, material, seamMaterial, scale = .86) {
   const hand = new THREE.Group();
   hand.scale.setScalar(scale);
-  roundedBox(hand, [.13, .09, .126], [0, 0, 0], material, .035, 3);
-  // Four separated fingers wrapped around the front strap.
+  // Palm is horizontal under the dust cover; fingers curl up around the frame.
+  roundedBox(hand, [.146, .073, .159], [0, 0, 0], material, .03, 3);
   for (let i = 0; i < 4; i++) {
-    const x = -.047 + i * .031;
-    const finger = roundedBox(hand, [.027, .035, .117], [x, -.038, -.047], material, .012, 3);
-    finger.rotation.x = -.16;
-    const knuckle = roundedBox(hand, [.022, .012, .025], [x, -.017, -.065], seamMaterial, .007, 2);
+    const x = -.052 + i * .034;
+    addHandSegment(hand, [x, .008, -.043], [x, .054, -.014], .014, material);
+    addHandSegment(hand, [x, .054, -.014], [x, .082, .031], .013, material);
+    roundedBox(hand, [.021, .012, .026], [x, .046, -.012], seamMaterial, .005, 2);
   }
-  const thumb = roundedBox(hand, [.038, .036, .092], [-.079, .016, .015], material, .015, 3);
-  thumb.rotation.y = -.33;
-  thumb.rotation.z = -.56;
-  // Glove reinforcement panel and cuff stitching.
-  roundedBox(hand, [.025, .065, .069], [0, .018, .048], seamMaterial, .009, 2);
-  for (const side of [-1, 1]) {
-    const seam = cube(hand, [.0025, .045, .003], [side * .064, .005, .012], seamMaterial);
-  }
+  addHandSegment(hand, [-.072, .005, .02], [-.05, .046, .079], .018, material);
+  addHandSegment(hand, [-.05, .046, .079], [-.007, .068, .087], .016, material);
+  roundedBox(hand, [.096, .022, .075], [0, -.04, .035], seamMaterial, .009, 2);
   parent.add(hand);
   return hand;
 }
@@ -268,11 +316,12 @@ export function createG17(camera, scene) {
   camera.add(weaponFill);
   const weaponRoot = new THREE.Group();
   camera.add(weaponRoot);
-  weaponRoot.position.set(.37, -.31, -.76);
+  weaponRoot.position.set(.34, -.35, -.78);
+  weaponRoot.rotation.set(.015, .017, -.02);
   const gun = new THREE.Group();
-  gun.scale.setScalar(1.1);
-  gun.rotation.y = .18;
-  gun.rotation.x = -.045;
+  gun.scale.setScalar(.73);
+  gun.rotation.y = .018;
+  gun.rotation.x = .018;
   weaponRoot.add(gun);
 
   // Polymer frame, front dust cover and upper rails.
@@ -417,9 +466,8 @@ export function createG17(camera, scene) {
   gun.add(rightArm);
   const cuff = roundedBox(gun, [.15, .07, .085], [.038, -.23, .19], materials.sleeveTrim, .025, 3);
   cuff.rotation.z = -.15;
-  const firingHand = buildGlove(gun, materials.glove, materials.gloveSeam, 1.02);
-  firingHand.position.set(-.018, -.17, .12);
-  firingHand.rotation.set(.07, -.04, -.03);
+  const firingHand = buildFiringHand(gun, materials.glove, materials.gloveSeam);
+  firingHand.rotation.set(.015, -.015, -.012);
 
   // Viewmodel muzzle flash: warm lens flare, short directional flame and a single light.
   const flashCanvas = document.createElement('canvas');
@@ -453,21 +501,19 @@ export function createG17(camera, scene) {
   const supportArm = makeSegmentGeometry(.082, .125, materials.sleeve);
   camera.add(supportArm);
   const supportCuff = roundedBox(camera, [.13, .07, .08], [0, 0, 0], materials.sleeveTrim, .025, 3);
-  const supportHand = buildGlove(camera, materials.glove, materials.gloveSeam, .9);
+  const supportHand = buildSupportHand(camera, materials.glove, materials.gloveSeam, .86);
   const elbow = new THREE.Vector3(-.5, -1.06, -.48);
-  const supportTargetIdle = new THREE.Vector3(.17, -.43, -1.0);
-  const supportTargetReload = new THREE.Vector3(.25, -.56, -.82);
-  const supportTargetInspect = new THREE.Vector3(.12, -.42, -.97);
+  const supportTargetIdle = new THREE.Vector3(.19, -.455, -.91);
+  const supportTargetInspect = new THREE.Vector3(.10, -.39, -.90);
 
-  const hipPosition = new THREE.Vector3(.37, -.31, -.76);
-  const adsPosition = new THREE.Vector3(.025, -.13, -.77);
-  const inspectPosition = new THREE.Vector3(.13, -.16, -.67);
-  const hipRotation = new THREE.Euler(-.045, .16, -.035);
-  const adsRotation = new THREE.Euler(-.012, -.14, -.012);
-  const inspectRotation = new THREE.Euler(-.16, -.43, -.22);
-  const magazineBaseY = mag.position.y;
+  const hipPosition = new THREE.Vector3(.34, -.35, -.78);
+  const adsPosition = new THREE.Vector3(.005, -.084, -.75);
+  const inspectPosition = new THREE.Vector3(.16, -.18, -.72);
+  const hipRotation = new THREE.Euler(.015, .017, -.02);
+  const adsRotation = new THREE.Euler(-.018, -.018, 0);
+  const inspectRotation = new THREE.Euler(-.12, -.31, -.18);
   let reloadTimer = 0;
-  let reloadDuration = 1.48;
+  let reloadDuration = 1.68;
   let reloadEmpty = false;
   let inspectTimer = 0;
   let flashTimer = 0;
@@ -501,32 +547,48 @@ export function createG17(camera, scene) {
   function updateReload(dt, deltaPosition, deltaRotation) {
     reloadTimer += dt;
     const u = Math.min(1, reloadTimer / reloadDuration);
-    const smooth = (a, b, x) => {
-      const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
+    const ease = (from, to, value) => {
+      const t = THREE.MathUtils.clamp((value - from) / (to - from), 0, 1);
       return t * t * (3 - 2 * t);
     };
-    const lower = smooth(0, .22, u);
-    const recover = smooth(.78, 1, u);
-    deltaPosition.x += -.035 * lower * (1 - recover);
-    deltaPosition.y += -.095 * lower * (1 - recover);
-    deltaPosition.z += .015 * lower * (1 - recover);
-    deltaRotation.x += -.13 * lower * (1 - recover);
-    deltaRotation.y += .035 * lower * (1 - recover);
-    deltaRotation.z += .19 * lower * (1 - recover);
 
-    const eject = smooth(.20, .36, u);
-    mag.visible = u < .38;
-    mag.position.y = magazineBaseY - .16 * eject;
-    const insert = smooth(.45, .76, u);
-    freshMag.visible = u >= .43 && u < .83;
+    // Briefly lower and roll the pistol inward, keeping the muzzle controlled and in view.
+    const settle = ease(0, .17, u);
+    const recover = ease(.83, 1, u);
+    const reloadPose = settle * (1 - recover);
+    deltaPosition.x -= .022 * reloadPose;
+    deltaPosition.y -= .055 * reloadPose;
+    deltaPosition.z += .012 * reloadPose;
+    deltaRotation.x += .085 * reloadPose;
+    deltaRotation.y -= .012 * reloadPose;
+    deltaRotation.z += .095 * reloadPose;
+
+    // Old magazine leaves the well first; the replacement is then seated in one deliberate upward motion.
+    const eject = ease(.24, .40, u);
+    mag.visible = u < .42;
+    mag.position.copy(magBasePosition);
+    mag.position.y -= .205 * eject;
+    mag.position.z += .064 * eject;
+
+    const insert = ease(.47, .78, u);
+    freshMag.visible = u >= .42 && u < .88;
     freshMag.position.copy(magBasePosition);
-    freshMag.position.y = magazineBaseY - .18 * (1 - insert);
-    freshMag.position.x = -.015 * (1 - insert);
-    if (reloadEmpty && u > .78 && u < .96) {
-      const rack = Math.sin(((u - .78) / .18) * Math.PI);
-      slide.position.z = .065 * rack;
-    } else if (reloadTimer > reloadDuration * .78) {
-      slide.position.z *= Math.max(0, 1 - dt * 16);
+    freshMag.position.y -= .205 * (1 - insert);
+    freshMag.position.z += .09 * (1 - insert);
+    freshMag.position.x = -.012 * (1 - insert);
+
+    if (reloadEmpty) {
+      const drawBack = ease(.81, .86, u);
+      const release = ease(.91, .965, u);
+      slide.position.z = .052 * drawBack * (1 - release);
+    } else if (u > .77) {
+      slide.position.z = 0;
+    }
+
+    if (u >= .88) {
+      mag.visible = true;
+      mag.position.copy(magBasePosition);
+      freshMag.visible = false;
     }
     if (u >= 1) {
       reloadTimer = 0;
@@ -543,6 +605,8 @@ export function createG17(camera, scene) {
     if (reloadTimer > 0 || inspectTimer > 0) return false;
     reloadTimer = .0001;
     reloadEmpty = isEmpty;
+    slideRecoil = 0;
+    slide.position.z = 0;
     return true;
   }
 
@@ -629,25 +693,33 @@ export function createG17(camera, scene) {
       flashSprite.scale.setScalar(.17 + Math.random() * .04);
     }
 
-    // Left-hand choreography: support the muzzle at rest, reach for the mag, then settle back.
-    let supportAmount = 0;
+    // Left hand supports the frame between shots, then reaches to the magwell and returns naturally.
+    let reloadReach = 0;
+    let slideReleaseReach = 0;
     if (inReload) {
       const u = Math.min(1, reloadTimer / reloadDuration);
-      supportAmount = THREE.MathUtils.smoothstep(u, .08, .24) * (1 - THREE.MathUtils.smoothstep(u, .68, .88));
-    } else if (inInspect) {
-      supportAmount = .28;
+      reloadReach = THREE.MathUtils.smoothstep(u, .06, .24);
+      const withdrawStart = reloadEmpty ? .79 : .75;
+      reloadReach *= 1 - THREE.MathUtils.smoothstep(u, withdrawStart, .96);
+      if (reloadEmpty) {
+        slideReleaseReach = THREE.MathUtils.smoothstep(u, .81, .88)
+          * (1 - THREE.MathUtils.smoothstep(u, .92, .99));
+      }
     }
+    const inspectReach = inInspect ? .3 : 0;
     gun.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
     magSocket.getWorldPosition(tempWorld);
     camera.worldToLocal(tempLocal.copy(tempWorld));
-    const reloadHand = tempLocal.clone().add(new THREE.Vector3(.015, -.09, -.01));
-    const inspectHand = supportTargetInspect;
-    const target = supportTargetIdle.clone().lerp(reloadHand, supportAmount);
-    if (inInspect) target.lerp(inspectHand, .35);
+    const magHandTarget = tempLocal.clone().add(new THREE.Vector3(0, -.12, .105));
+    const releaseWorld = gun.localToWorld(new THREE.Vector3(-.075, .055, .105));
+    const releaseHandTarget = camera.worldToLocal(releaseWorld).add(new THREE.Vector3(.025, -.015, .045));
+    const target = supportTargetIdle.clone().lerp(magHandTarget, reloadReach);
+    target.lerp(releaseHandTarget, slideReleaseReach);
+    target.lerp(supportTargetInspect, inspectReach);
     supportHand.position.copy(target);
-    supportHand.rotation.set(.14 + supportAmount * -.14, -.08, -.12 + supportAmount * .12);
-    const wrist = target.clone().add(new THREE.Vector3(0, .02, .045));
+    supportHand.rotation.set(.12 + reloadReach * .18 + slideReleaseReach * -.12, -.04, .08 + reloadReach * -.16);
+    const wrist = target.clone().add(new THREE.Vector3(0, .015, .055));
     setSegment(supportArm, elbow, wrist);
     supportCuff.position.copy(wrist).add(new THREE.Vector3(0, .025, -.02));
     supportCuff.quaternion.copy(supportArm.quaternion);
