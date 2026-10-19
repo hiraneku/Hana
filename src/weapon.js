@@ -157,7 +157,7 @@ export function createKnife(camera) {
     handle: new THREE.MeshStandardMaterial({ color: 0x1e2321, map: handleTex, roughness: 0.92, metalness: 0.02 }),
     handleSide: new THREE.MeshStandardMaterial({ color: 0x252a27, map: handleTex, roughness: 0.94 }),
     pin: new THREE.MeshStandardMaterial({ color: 0xa3aea8, metalness: 0.55, roughness: 0.30 }),
-    hand: new THREE.MeshStandardMaterial({ color: 0x3b4038, roughness: 0.95, metalness: 0.01 }),
+    hand: new THREE.MeshStandardMaterial({ color: 0x5b5e52, roughness: 0.92, metalness: 0.01 }),
     sleeve: new THREE.MeshStandardMaterial({ color: 0x2e3431, roughness: 0.97 }),
     cuff: new THREE.MeshStandardMaterial({ color: 0x444a42, roughness: 0.90 }),
     dark: new THREE.MeshStandardMaterial({ color: 0x0d1210, roughness: 0.85 }),
