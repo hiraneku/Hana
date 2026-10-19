@@ -3,618 +3,308 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 
 const UP = new THREE.Vector3(0, 1, 0);
 
-function roundedBox(parent, size, position, material, radius = 0.012, segments = 3) {
-  const geometry = new RoundedBoxGeometry(size[0], size[1], size[2], segments, Math.min(radius, Math.min(...size) * 0.24));
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(...position);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
+function roundedBox(parent, size, pos, mat, radius = 0.012, seg = 3) {
+  const geo = new RoundedBoxGeometry(size[0], size[1], size[2], seg, Math.min(radius, Math.min(...size) * 0.24));
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...pos);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
 }
-
-function addCapsule(parent, start, end, radius, material) {
+function capsule(parent, start, end, radius, mat) {
   const a = new THREE.Vector3(...start);
   const b = new THREE.Vector3(...end);
-  const direction = b.clone().sub(a);
-  const length = direction.length();
-  const geometry = new THREE.CapsuleGeometry(radius, Math.max(0.001, length - radius * 2), 6, 12);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(a).add(b).multiplyScalar(0.5);
-  if (length > 0.0001) {
-    mesh.quaternion.setFromUnitVectors(UP, direction.clone().normalize());
-  }
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
+  const dir = b.clone().sub(a);
+  const len = dir.length();
+  const geo = new THREE.CapsuleGeometry(radius, Math.max(0.001, len - radius * 2), 8, 14);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  if (len > 1e-4) m.quaternion.setFromUnitVectors(UP, dir.clone().normalize());
+  m.castShadow = true;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
 }
 
-function cylinderAlongX(parent, radius, length, position, material) {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 14), material);
-  mesh.rotation.z = Math.PI / 2;
-  mesh.position.set(...position);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
-}
-
-// --- Textures ---------------------------------------------------------------
-
-function makeMicartaTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  // deep matte micarta base
-  ctx.fillStyle = '#202523';
+// --- minimal clean textures ---
+function makeHandleTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1d2220';
   ctx.fillRect(0, 0, 256, 256);
-  // subtle woven crosshatch
-  ctx.strokeStyle = 'rgba(45,52,48,0.9)';
-  ctx.lineWidth = 1;
-  for (let y = 0; y < 256; y += 6) {
-    ctx.beginPath();
-    ctx.moveTo(0, y + (y % 12 === 0 ? 0 : 2));
-    ctx.lineTo(256, y);
-    ctx.stroke();
-  }
-  for (let x = 0; x < 256; x += 6) {
-    ctx.globalAlpha = 0.18;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + 1, 256);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  // micro speckle - very subtle
-  let seed = 1337;
-  const rnd = () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  for (let i = 0; i < 600; i++) {
-    const x = rnd() * 256;
-    const y = rnd() * 256;
-    const v = rnd() > 0.5 ? 28 : 48;
-    ctx.fillStyle = `rgba(${v},${v + 2},${v},${0.07 + rnd() * 0.08})`;
+  // very subtle noise
+  for (let i = 0; i < 500; i++) {
+    const x = Math.random() * 256, y = Math.random() * 256;
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.04})`;
     ctx.fillRect(x, y, 1, 1);
   }
-  // border highlight for bevel
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 2);
-  texture.anisotropy = 4;
-  return texture;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
 }
-
-function makeBrushedSteelTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-  // soft satin gradient across width (spine to edge)
+function makeSteelTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const ctx = c.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, 512, 0);
-  g.addColorStop(0, '#6b746f');
-  g.addColorStop(0.18, '#8a9490');
-  g.addColorStop(0.42, '#c2c9c6');
-  g.addColorStop(0.58, '#b8c0bc');
-  g.addColorStop(0.82, '#8f9a96');
-  g.addColorStop(1, '#5f6864');
+  g.addColorStop(0, '#7a8480');
+  g.addColorStop(0.35, '#c8d0cc');
+  g.addColorStop(0.5, '#e6ece8');
+  g.addColorStop(0.65, '#c2cac6');
+  g.addColorStop(1, '#6a7470');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 512);
-  // longitudinal brush strokes - parallel to blade length (vertical in texture)
-  let seed = 4242;
-  const rnd = () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  ctx.globalCompositeOperation = 'overlay';
-  for (let i = 0; i < 2200; i++) {
-    const x = rnd() * 512;
-    const y = rnd() * 512;
-    const len = 18 + rnd() * 110;
-    const w = 0.3 + rnd() * 0.7;
-    const bright = rnd() > 0.55;
-    ctx.strokeStyle = bright ? `rgba(235,242,238,${0.035 + rnd() * 0.09})` : `rgba(18,24,22,${0.03 + rnd() * 0.07})`;
-    ctx.lineWidth = w;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + (rnd() - 0.5) * 1.5, y + len);
-    ctx.stroke();
+  ctx.fillRect(0, 0, 512, 256);
+  // fine brushed lines
+  ctx.globalAlpha = 0.18;
+  for (let i = 0; i < 800; i++) {
+    const y = Math.random() * 256;
+    const x = Math.random() * 512;
+    ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#0a0f0e';
+    ctx.fillRect(x, y, 30 + Math.random() * 80, 0.6);
   }
-  ctx.globalCompositeOperation = 'source-over';
-  // faint hollow grind highlight down the center
-  const hg = ctx.createLinearGradient(0, 0, 512, 0);
-  hg.addColorStop(0, 'rgba(0,0,0,0)');
-  hg.addColorStop(0.38, 'rgba(255,255,255,0)');
-  hg.addColorStop(0.46, 'rgba(255,255,255,0.07)');
-  hg.addColorStop(0.5, 'rgba(255,255,255,0.10)');
-  hg.addColorStop(0.54, 'rgba(255,255,255,0.07)');
-  hg.addColorStop(0.62, 'rgba(0,0,0,0)');
-  hg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = hg;
-  ctx.fillRect(0, 0, 512, 512);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
+  ctx.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
 }
 
-// --- Blade ------------------------------------------------------------------
-
-function createCleanDropPointBlade(parent, materials) {
-  // Clean tactical drop-point: spine stays straight, belly curves smoothly to a fine tip.
-  // Shape X = width, Y = length (-Z forward)
-  const shape = new THREE.Shape();
-  // guard junction
-  shape.moveTo(-0.018, -0.010);
-  // ricasso to mid-blade - straight spine
-  shape.lineTo(-0.020, -0.090);
-  // spine drop to tip
-  shape.bezierCurveTo(-0.0205, -0.185, -0.016, -0.285, 0.001, -0.395);
-  // tip to belly return
-  shape.bezierCurveTo(0.012, -0.360, 0.027, -0.285, 0.034, -0.195);
-  // belly to ricasso
-  shape.bezierCurveTo(0.036, -0.115, 0.030, -0.045, 0.019, -0.010);
-  shape.closePath();
-
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.011,
+function createBlade(parent, mats) {
+  // simple, elegant drop-point - no fantasy serrations
+  const s = new THREE.Shape();
+  // ricasso
+  s.moveTo(-0.016, -0.008);
+  s.lineTo(-0.017, -0.075);
+  // spine straight then drops
+  s.bezierCurveTo(-0.0175, -0.170, -0.014, -0.270, 0.001, -0.365);
+  // tip
+  s.bezierCurveTo(0.010, -0.335, 0.023, -0.265, 0.029, -0.175);
+  s.bezierCurveTo(0.030, -0.095, 0.022, -0.030, 0.015, -0.008);
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, {
+    depth: 0.009,
     bevelEnabled: true,
-    bevelSegments: 4,
-    steps: 2,
-    bevelSize: 0.0022,
-    bevelThickness: 0.0022,
-    curveSegments: 14,
+    bevelSegments: 3,
+    bevelSize: 0.0018,
+    bevelThickness: 0.0018,
+    curveSegments: 12,
   });
-  geometry.rotateX(Math.PI / 2);
-  geometry.translate(0, 0.006, 0);
-  // chamfer the spine edge a bit for realism
-  const blade = new THREE.Mesh(geometry, materials.blade);
+  geo.rotateX(Math.PI / 2);
+  geo.translate(0, 0.005, 0);
+  const blade = new THREE.Mesh(geo, mats.blade);
   blade.castShadow = true;
   blade.receiveShadow = true;
   parent.add(blade);
-
-  // Add a thin flat grind facet as a slightly darker plane on the blade flat
-  // to suggest a hollow grind without wire tubes.
-  const grindShape = new THREE.Shape();
-  grindShape.moveTo(-0.014, -0.035);
-  grindShape.lineTo(-0.015, -0.260);
-  grindShape.bezierCurveTo(-0.011, -0.315, -0.001, -0.360, 0.007, -0.370);
-  grindShape.bezierCurveTo(0.018, -0.300, 0.026, -0.210, 0.027, -0.120);
-  grindShape.lineTo(0.017, -0.035);
-  grindShape.closePath();
-  const grindGeo = new THREE.ShapeGeometry(grindShape);
-  grindGeo.rotateX(Math.PI / 2);
-  // two sided grind planes, just slightly offset from blade surface
-  for (const side of [1, -1]) {
-    const grind = new THREE.Mesh(grindGeo, materials.bladeGrind);
-    grind.position.y = side * 0.0062;
-    grind.rotation.y = 0;
-    // tiny offset to avoid z-fighting
-    grind.position.y += side * 0.0003;
-    parent.add(grind);
-  }
-
-  // Subtle jimping texture on spine (tiny notches) - 3 small boxes
-  for (let i = 0; i < 7; i++) {
-    const z = -0.042 - i * 0.011;
-    const jimp = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.0018, 0.006), materials.jimp);
-    jimp.position.set(-0.019, 0.009, z);
-    jimp.rotation.y = 0.06;
-    parent.add(jimp);
-  }
-
-  // Maker's mark - tiny etched circle near ricasso
-  const mark = new THREE.Mesh(new THREE.CircleGeometry(0.0055, 10), materials.mark);
-  mark.rotation.x = -Math.PI / 2;
-  mark.position.set(-0.006, 0.0071, -0.050);
-  parent.add(mark);
 }
 
-// --- Hand ------------------------------------------------------------------
-
-function buildRealisticHand(parent, materials) {
+function buildHand(parent, mats) {
   const hand = new THREE.Group();
 
-  // Palm block - gently curved, wraps over top of handle
-  const palmGeo = new RoundedBoxGeometry(0.084, 0.076, 0.105, 4, 0.022);
-  const palm = new THREE.Mesh(palmGeo, materials.glove);
-  palm.position.set(-0.008, 0.018, 0.010);
-  palm.rotation.set(0.18, 0, -0.08);
+  // palm - soft rounded volume on top of handle
+  const palm = new THREE.Mesh(new RoundedBoxGeometry(0.092, 0.058, 0.108, 4, 0.018), mats.hand);
+  palm.position.set(-0.006, 0.022, 0.012);
+  palm.rotation.set(0.12, 0, -0.06);
   palm.castShadow = true;
-  palm.receiveShadow = true;
   hand.add(palm);
 
-  // Dorsal hand bulge (knuckles)
-  const knuckleGeo = new THREE.SphereGeometry(0.5, 16, 10);
-  const knuckle = new THREE.Mesh(knuckleGeo, materials.glove);
-  knuckle.scale.set(0.086, 0.032, 0.092);
-  knuckle.position.set(-0.014, 0.052, -0.012);
-  knuckle.rotation.z = -0.12;
-  hand.add(knuckle);
+  // back of hand - knuckle bulge
+  const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), mats.hand);
+  back.scale.set(0.092, 0.028, 0.098);
+  back.position.set(-0.010, 0.050, -0.008);
+  hand.add(back);
 
-  // Knuckle creases - subtle darker lines
-  for (let i = 0; i < 3; i++) {
-    const crease = new THREE.Mesh(new THREE.CapsuleGeometry(0.0016, 0.055, 4, 6), materials.gloveSeam);
-    crease.position.set(-0.014 + i * 0.009, 0.055, -0.012 + i * 0.004);
-    crease.rotation.x = Math.PI / 2;
-    crease.rotation.z = -0.12;
-    hand.add(crease);
-  }
-
-  // Four fingers - tightly wrapped hammer grip, no gaps, fingers nearly touching
-  // Z positions centered around handle, X/Y wrap around handle cross-section
-  const fingerData = [
-    { z: -0.036, radius: 0.0122, curl: 0 }, // index - closest to guard, slightly more extended
-    { z: -0.010, radius: 0.0118, curl: 0.03 },
-    { z: 0.017, radius: 0.0112, curl: 0.05 },
-    { z: 0.042, radius: 0.0102, curl: 0.08 }, // pinky - tightest curl
+  // 4 fingers - tight hammer grip, clearly wrapped under handle
+  // handle cross section at pivot: width ~0.064 (X), height ~0.052 (Y)
+  const fingers = [
+    { z: -0.030, r: 0.0130 }, // index - near guard
+    { z: -0.002, r: 0.0126 }, // middle
+    { z: 0.024, r: 0.0118 }, // ring
+    { z: 0.048, r: 0.0106 }, // pinky
   ];
-
-  fingerData.forEach((f, idx) => {
-    const r = f.radius;
-    const z = f.z;
-    const t = f.curl;
-    // Proximal phalanx - from knuckle (top) down the side
-    addCapsule(hand, [-0.010, 0.038, z], [-0.036, 0.010, z + 0.003], r, materials.glove);
-    // Middle phalanx - wraps around side to under-handle
-    addCapsule(hand, [-0.036, 0.010, z + 0.003], [-0.044, -0.022, z + 0.006], r * 0.98, materials.glove);
-    // Distal + fingertip curling under to opposite side - tucked tightly against handle
-    addCapsule(hand, [-0.044, -0.022, z + 0.006], [-0.026, -0.050, z + 0.009], r * 0.94, materials.glove);
-    // Fingertip pad pressing into handle (flattened)
-    addCapsule(hand, [-0.026, -0.050, z + 0.009], [0.012, -0.040, z + 0.011], r * 0.86, materials.gloveTip);
-
-    // Fingernail hint on fingertip (small lighter cap)
-    const nail = new THREE.Mesh(new THREE.SphereGeometry(r * 0.42, 6, 4), materials.nail);
-    nail.scale.set(1, 0.35, 0.7);
-    nail.position.set(0.008, -0.041, z + 0.011);
-    nail.rotation.z = -0.4;
-    nail.rotation.y = 0.2;
-    hand.add(nail);
-
-    // Knuckle highlight for middle/ring
-    if (idx === 1 || idx === 2) {
-      const kn = new THREE.Mesh(new THREE.SphereGeometry(r * 0.55, 6, 4), materials.gloveHighlight);
-      kn.position.set(-0.012, 0.038, z);
-      kn.scale.set(1, 0.6, 0.9);
-      hand.add(kn);
-    }
+  fingers.forEach((f) => {
+    const z = f.z, r = f.r;
+    // segment 1: knuckle to side
+    capsule(hand, [-0.008, 0.036, z], [-0.038, 0.008, z], r, mats.hand);
+    // segment 2: side to under
+    capsule(hand, [-0.038, 0.008, z], [-0.038, -0.028, z + 0.004], r * 0.98, mats.hand);
+    // segment 3: under to fingertip (wraps to opposite side)
+    capsule(hand, [-0.038, -0.028, z + 0.004], [0.010, -0.032, z + 0.006], r * 0.92, mats.hand);
   });
 
-  // Thumb - opposing, locked over handle, realistic saddle joint
-  // Base of thumb (thenar eminence)
-  const thenar = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), materials.glove);
-  thenar.scale.set(0.048, 0.038, 0.055);
-  thenar.position.set(-0.036, 0.012, 0.052);
-  thenar.rotation.set(0.2, 0, -0.35);
+  // thumb - opposes fingers, diagonal across handle
+  // thenar muscle
+  const thenar = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), mats.hand);
+  thenar.scale.set(0.052, 0.036, 0.060);
+  thenar.position.set(-0.032, 0.010, 0.055);
   hand.add(thenar);
-
-  // Thumb segments - wrapping diagonally over handle spine
-  addCapsule(hand, [-0.048, 0.018, 0.068], [-0.056, 0.040, 0.038], 0.0145, materials.glove);
-  addCapsule(hand, [-0.056, 0.040, 0.038], [-0.032, 0.036, 0.006], 0.0135, materials.glove);
-  addCapsule(hand, [-0.032, 0.036, 0.006], [0.002, 0.008, -0.018], 0.012, materials.gloveTip);
-
-  // Thumb nail
-  const thumbNail = new THREE.Mesh(new THREE.SphereGeometry(0.007, 6, 4), materials.nail);
-  thumbNail.scale.set(1, 0.28, 0.65);
-  thumbNail.position.set(-0.004, 0.013, -0.014);
-  thumbNail.rotation.set(0.9, 0, -0.6);
-  hand.add(thumbNail);
-
-  // Thumb crease
-  const thumbCrease = new THREE.Mesh(new THREE.CapsuleGeometry(0.0018, 0.028, 4, 6), materials.gloveSeam);
-  thumbCrease.position.set(-0.040, 0.032, 0.038);
-  thumbCrease.rotation.set(0.9, 0.6, 0);
-  hand.add(thumbCrease);
+  capsule(hand, [-0.044, 0.016, 0.070], [-0.054, 0.038, 0.040], 0.0142, mats.hand);
+  capsule(hand, [-0.054, 0.038, 0.040], [-0.028, 0.034, 0.008], 0.0130, mats.hand);
+  capsule(hand, [-0.028, 0.034, 0.008], [0.004, 0.010, -0.016], 0.0115, mats.hand);
 
   parent.add(hand);
   return hand;
 }
 
 export function createKnife(camera) {
-  const micartaTexture = makeMicartaTexture();
-  const steelTexture = makeBrushedSteelTexture();
-
-  const materials = {
-    blade: new THREE.MeshStandardMaterial({
-      color: 0xced6d2,
-      map: steelTexture,
-      metalness: 0.78,
-      roughness: 0.24,
-      envMapIntensity: 1.0,
-    }),
-    bladeGrind: new THREE.MeshStandardMaterial({
-      color: 0xb9c2be,
-      metalness: 0.82,
-      roughness: 0.28,
-      transparent: true,
-      opacity: 0.55,
-      side: THREE.DoubleSide,
-    }),
-    jimp: new THREE.MeshStandardMaterial({ color: 0x5a6460, roughness: 0.65, metalness: 0.35 }),
-    mark: new THREE.MeshStandardMaterial({ color: 0x3a4440, roughness: 0.72, metalness: 0.15 }),
-    guard: new THREE.MeshStandardMaterial({ color: 0x7e8a85, metalness: 0.72, roughness: 0.32 }),
-    guardDark: new THREE.MeshStandardMaterial({ color: 0x5f6a66, metalness: 0.60, roughness: 0.38 }),
-    bolster: new THREE.MeshStandardMaterial({ color: 0x7c8682, metalness: 0.68, roughness: 0.30 }),
-    handle: new THREE.MeshStandardMaterial({ color: 0x1e2321, map: micartaTexture, roughness: 0.88, metalness: 0.02 }),
-    handleScale: new THREE.MeshStandardMaterial({ color: 0x232825, map: micartaTexture, roughness: 0.90, metalness: 0.01 }),
-    pin: new THREE.MeshStandardMaterial({ color: 0x9aa5a0, metalness: 0.55, roughness: 0.35 }),
-    pinDark: new THREE.MeshStandardMaterial({ color: 0x6a7570, metalness: 0.45, roughness: 0.42 }),
-    black: new THREE.MeshStandardMaterial({ color: 0x0f1412, roughness: 0.82, metalness: 0.02 }),
-    glove: new THREE.MeshStandardMaterial({ color: 0x2f3431, roughness: 0.92, metalness: 0.005 }),
-    gloveTip: new THREE.MeshStandardMaterial({ color: 0x333833, roughness: 0.88, metalness: 0.008 }),
-    gloveHighlight: new THREE.MeshStandardMaterial({ color: 0x3a3f3a, roughness: 0.86, metalness: 0.01 }),
-    gloveSeam: new THREE.MeshStandardMaterial({ color: 0x454a45, roughness: 0.94, metalness: 0.005 }),
-    nail: new THREE.MeshStandardMaterial({ color: 0x4a4d45, roughness: 0.75, metalness: 0.01 }),
-    sleeve: new THREE.MeshStandardMaterial({ color: 0x2d3531, roughness: 0.96, metalness: 0.015 }),
-    sleeveInner: new THREE.MeshStandardMaterial({ color: 0x252c28, roughness: 0.97, metalness: 0.01 }),
-    cuff: new THREE.MeshStandardMaterial({ color: 0x3e443c, roughness: 0.89, metalness: 0.01 }),
-    cuffStitch: new THREE.MeshStandardMaterial({ color: 0x5a5e52, roughness: 0.90 }),
+  const handleTex = makeHandleTexture();
+  const steelTex = makeSteelTexture();
+  const mats = {
+    blade: new THREE.MeshStandardMaterial({ color: 0xd6ddd9, map: steelTex, metalness: 0.75, roughness: 0.28 }),
+    guard: new THREE.MeshStandardMaterial({ color: 0x8a9590, metalness: 0.68, roughness: 0.32 }),
+    handle: new THREE.MeshStandardMaterial({ color: 0x1e2321, map: handleTex, roughness: 0.92, metalness: 0.02 }),
+    handleSide: new THREE.MeshStandardMaterial({ color: 0x252a27, map: handleTex, roughness: 0.94 }),
+    pin: new THREE.MeshStandardMaterial({ color: 0xa3aea8, metalness: 0.55, roughness: 0.30 }),
+    hand: new THREE.MeshStandardMaterial({ color: 0x3b4038, roughness: 0.95, metalness: 0.01 }),
+    sleeve: new THREE.MeshStandardMaterial({ color: 0x2e3431, roughness: 0.97 }),
+    cuff: new THREE.MeshStandardMaterial({ color: 0x444a42, roughness: 0.90 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x0d1210, roughness: 0.85 }),
   };
 
-  // Soft fill light that follows the knife so the blade glints when inspected
-  const knifeFill = new THREE.PointLight(0xd6e2d9, 1.9, 2.8, 2);
-  knifeFill.position.set(-0.14, 0.28, -0.50);
-  camera.add(knifeFill);
-  const rimLight = new THREE.PointLight(0x8a9a94, 0.9, 2.2, 2);
-  rimLight.position.set(0.22, 0.18, -0.65);
-  camera.add(rimLight);
+  // lights attached to camera so blade stays readable
+  const fill = new THREE.PointLight(0xdfe8e2, 1.6, 2.6, 2);
+  fill.position.set(-0.16, 0.30, -0.55);
+  camera.add(fill);
 
-  const weaponRoot = new THREE.Group();
-  camera.add(weaponRoot);
-  // Slightly lower and more centered than before for a natural FPS read
-  weaponRoot.position.set(0.20, -0.04, -0.72);
-  weaponRoot.rotation.set(0.38, 0.42, -0.08);
+  const root = new THREE.Group();
+  camera.add(root);
+  // natural FPS position - centered, readable, blade points forward
+  root.position.set(0.22, -0.10, -0.60);
+  root.rotation.set(0.32, 0.38, -0.04);
 
   const knife = new THREE.Group();
-  knife.scale.setScalar(0.84);
-  weaponRoot.add(knife);
+  knife.scale.setScalar(0.88);
+  root.add(knife);
 
-  createCleanDropPointBlade(knife, materials);
+  createBlade(knife, mats);
 
-  // --- Guard / Bolster ---
-  // Slim oval guard, double sided, not chunky tactical
-  const guardMain = roundedBox(knife, [0.098, 0.018, 0.024], [0, -0.001, -0.009], materials.guard, 0.008, 3);
-  guardMain.rotation.z = -0.02;
-  // Guard shoulders
-  const guardLeft = roundedBox(knife, [0.016, 0.014, 0.028], [-0.050, -0.004, -0.009], materials.guard, 0.006, 3);
-  guardLeft.rotation.z = -0.18;
-  const guardRight = roundedBox(knife, [0.016, 0.014, 0.028], [0.050, -0.004, -0.009], materials.guard, 0.006, 3);
-  guardRight.rotation.z = 0.18;
-  // Thin bolster / ferrule between guard and handle scales - polished steel transition
-  roundedBox(knife, [0.070, 0.054, 0.032], [0, -0.028, 0.014], materials.bolster, 0.010, 3);
-  // Ricasso choil shadow line
-  const choil = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.002, 0.008), materials.guardDark);
-  choil.position.set(0, -0.010, 0.001);
-  knife.add(choil);
+  // guard - small, clean, not blocky
+  roundedBox(knife, [0.090, 0.016, 0.022], [0, 0.001, -0.008], mats.guard, 0.007, 3);
+  // bolster
+  roundedBox(knife, [0.068, 0.042, 0.028], [0, -0.022, 0.012], mats.guard, 0.008, 3);
 
-  // --- Handle ---
-  // Main handle core - ergonomic, slight palm swell
-  roundedBox(knife, [0.062, 0.050, 0.182], [0, -0.050, 0.116], materials.handle, 0.018, 4);
-  // Palm swell bulge (subtle)
-  const swell = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), materials.handle);
-  swell.scale.set(0.070, 0.032, 0.095);
-  swell.position.set(0, -0.062, 0.135);
-  knife.add(swell);
-  // Micarta scales left/right
+  // handle - ergonomic, not oversized
+  roundedBox(knife, [0.058, 0.046, 0.175], [0, -0.046, 0.112], mats.handle, 0.016, 4);
   for (const side of [-1, 1]) {
-    const scale = roundedBox(knife, [0.006, 0.038, 0.168], [side * 0.031, -0.050, 0.116], materials.handleScale, 0.006, 3);
-    scale.rotation.y = side * 0.025;
+    roundedBox(knife, [0.005, 0.036, 0.158], [side * 0.029, -0.046, 0.112], mats.handleSide, 0.005, 3);
   }
-  // Handle pins - three stainless corby bolts, properly through the handle
-  const pinZ = [0.048, 0.108, 0.170];
-  pinZ.forEach((z, i) => {
-    const radius = i === 2 ? 0.0048 : 0.0052;
-    // Pin shaft
-    cylinderAlongX(knife, radius, 0.068, [0, -0.050, z], materials.pin);
-    // Pin heads (slightly larger, flush)
+  // 3 pins - clearly visible stainless
+  for (const z of [0.055, 0.110, 0.165]) {
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.062, 12), mats.pin);
+    pin.rotation.z = Math.PI / 2;
+    pin.position.set(0, -0.046, z);
+    knife.add(pin);
+    // heads
     for (const side of [-1, 1]) {
-      const head = new THREE.Mesh(new THREE.CylinderGeometry(radius + 0.0012, radius + 0.0012, 0.0015, 14), materials.pin);
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.0012, 12), mats.pin);
       head.rotation.z = Math.PI / 2;
-      head.position.set(side * 0.033, -0.050, z);
+      head.position.set(side * 0.031, -0.046, z);
       knife.add(head);
     }
-    // Decorative ring for lanyard pin (last pin)
-    if (i === 2) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.003, 0.001, 6, 12), materials.pinDark);
-      ring.position.set(0, -0.050, z);
-      ring.rotation.y = Math.PI / 2;
-      knife.add(ring);
-    }
-  });
-  // Butt / pommel - flat, with lanyard hole
-  roundedBox(knife, [0.064, 0.048, 0.018], [0, -0.050, 0.212], materials.handleScale, 0.007, 3);
-  const lanyardTube = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.066, 12), materials.black);
-  lanyardTube.rotation.z = Math.PI / 2;
-  lanyardTube.position.set(0, -0.050, 0.218);
-  knife.add(lanyardTube);
-  const lanyardHoleInner = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.068, 10), new THREE.MeshBasicMaterial({ color: 0x050707 }));
-  lanyardHoleInner.rotation.z = Math.PI / 2;
-  lanyardHoleInner.position.set(0, -0.050, 0.218);
-  knife.add(lanyardHoleInner);
-  // Lanyard cord hint (small loop)
-  const cord = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.0025, 6, 14), new THREE.MeshStandardMaterial({ color: 0x2b2f2b, roughness: 0.95 }));
-  cord.position.set(0, -0.050, 0.232);
-  cord.rotation.x = Math.PI / 2;
-  knife.add(cord);
+  }
+  // pommel + lanyard hole
+  roundedBox(knife, [0.060, 0.044, 0.016], [0, -0.046, 0.205], mats.handleSide, 0.006, 3);
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.0065, 0.0065, 0.062, 10), mats.dark);
+  hole.rotation.z = Math.PI / 2;
+  hole.position.set(0, -0.046, 0.210);
+  knife.add(hole);
 
-  // Finger choil and guard undercut - small notch for index finger
-  const choilNotch = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.070, 8, 1, false, 0, Math.PI), materials.black);
-  choilNotch.rotation.z = Math.PI / 2;
-  choilNotch.rotation.x = Math.PI;
-  choilNotch.position.set(0, -0.020, 0.005);
-  knife.add(choilNotch);
-
-  // --- Hand Rig ---
+  // hand pivot - at handle center
   const handPivot = new THREE.Group();
-  handPivot.position.set(0, -0.050, 0.116);
+  handPivot.position.set(0, -0.046, 0.110);
   knife.add(handPivot);
-  buildRealisticHand(handPivot, materials);
+  buildHand(handPivot, mats);
 
-  // Forearm - tapered, covered by tactical sleeve
-  const forearmGroup = new THREE.Group();
-  handPivot.add(forearmGroup);
-  // Inner arm (skin/glove continuity)
-  const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.058, 0.48, 12, 1), materials.sleeve);
-  forearm.position.set(0.068, -0.275, 0.095);
-  forearm.rotation.z = -0.21;
-  forearm.rotation.x = 0.08;
-  forearm.castShadow = true;
-  forearm.receiveShadow = true;
-  forearmGroup.add(forearm);
-  // Sleeve lower seam
-  const forearmHighlight = new THREE.Mesh(new THREE.CylinderGeometry(0.041, 0.043, 0.18, 10, 1), materials.sleeveInner);
-  forearmHighlight.position.set(0.052, -0.165, 0.062);
-  forearmHighlight.rotation.z = -0.21;
-  forearmGroup.add(forearmHighlight);
-  // Cuff / wrist closure (velcro strap)
-  const cuff = roundedBox(forearmGroup, [0.098, 0.048, 0.068], [0.022, -0.105, 0.050], materials.cuff, 0.014, 3);
-  cuff.rotation.z = -0.10;
-  cuff.rotation.y = 0.05;
-  // Cuff stitch line
-  const stitch = new THREE.Mesh(new THREE.BoxGeometry(0.099, 0.002, 0.0015), materials.cuffStitch);
-  stitch.position.set(0.022, -0.105, 0.050);
-  stitch.rotation.z = -0.10;
-  forearmGroup.add(stitch);
-  // Wrist watch / strap hint (common on field hands)
-  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.026, 0.048), new THREE.MeshStandardMaterial({ color: 0x1a1f1d, roughness: 0.82 }));
-  strap.position.set(-0.012, -0.108, 0.032);
-  // small buckle
-  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.014, 0.010), materials.pinDark);
-  buckle.position.set(-0.012, -0.108, 0.032);
-  forearmGroup.add(strap);
-  forearmGroup.add(buckle);
+  // forearm - slim, not huge, tucked naturally
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.050, 0.44, 12), mats.sleeve);
+  arm.position.set(0.030, -0.240, 0.145);
+  arm.rotation.z = -0.18;
+  arm.rotation.x = 0.10;
+  arm.castShadow = true;
+  handPivot.add(arm);
+  const cuff = roundedBox(handPivot, [0.086, 0.040, 0.062], [0.012, -0.090, 0.060], mats.cuff, 0.012, 3);
+  cuff.rotation.z = -0.08;
 
-  // --- Animations ---
-  const swingPositionCurve = new THREE.CatmullRomCurve3(
-    [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0.045, -0.025, 0.055),
-      new THREE.Vector3(-0.13, 0.095, -0.11),
-      new THREE.Vector3(-0.19, 0.045, -0.035),
-      new THREE.Vector3(0.028, -0.014, 0.040),
-      new THREE.Vector3(0, 0, 0),
-    ],
-    false,
-    'catmullrom',
-    0.18
-  );
-  const swingRotationCurve = new THREE.CatmullRomCurve3(
-    [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(-0.12, -0.14, 0.22),
-      new THREE.Vector3(0.10, 0.52, -0.62),
-      new THREE.Vector3(0.07, 0.34, -0.38),
-      new THREE.Vector3(-0.045, -0.08, 0.15),
-      new THREE.Vector3(0, 0, 0),
-    ],
-    false,
-    'catmullrom',
-    0.18
-  );
-  const readyPosition = new THREE.Vector3(0.20, -0.04, -0.72);
-  const inspectPosition = new THREE.Vector3(0.08, 0.06, -0.64);
-  const readyRotation = new THREE.Euler(0.38, 0.42, -0.08);
-  const inspectRotation = new THREE.Euler(0.30, -0.35, -0.18);
-  const swingPosition = new THREE.Vector3();
-  const swingRotation = new THREE.Vector3();
-  const attackDuration = 0.78;
-  let attackTimer = 0;
-  let attackSwingDone = false;
-  let attackHitDone = false;
-  let inspectTimer = 0;
-  let swingCount = 0;
+  // --- animation ---
+  const posCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0.035, -0.020, 0.045),
+    new THREE.Vector3(-0.110, 0.085, -0.095),
+    new THREE.Vector3(-0.165, 0.040, -0.030),
+    new THREE.Vector3(0.020, -0.012, 0.030),
+    new THREE.Vector3(0, 0, 0),
+  ], false, 'catmullrom', 0.18);
+  const rotCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(-0.10, -0.12, 0.20),
+    new THREE.Vector3(0.09, 0.48, -0.58),
+    new THREE.Vector3(0.06, 0.30, -0.34),
+    new THREE.Vector3(-0.04, -0.06, 0.12),
+    new THREE.Vector3(0, 0, 0),
+  ], false, 'catmullrom', 0.18);
+
+  const readyPos = new THREE.Vector3(0.22, -0.10, -0.60);
+  const inspectPos = new THREE.Vector3(0.08, -0.02, -0.55);
+  const readyRot = new THREE.Euler(0.32, 0.38, -0.04);
+  const inspectRot = new THREE.Euler(0.32, -0.22, -0.14);
+  const tmpPos = new THREE.Vector3();
+  const tmpRot = new THREE.Vector3();
+  const dur = 0.72;
+  let timer = 0, swingDone = false, hitDone = false, inspect = 0, count = 0;
 
   function attack() {
-    if (attackTimer > 0 || inspectTimer > 0) return false;
-    attackTimer = attackDuration;
-    attackSwingDone = false;
-    attackHitDone = false;
-    swingCount += 1;
+    if (timer > 0 || inspect > 0) return false;
+    timer = dur; swingDone = false; hitDone = false; count++;
     return true;
   }
-
   function startInspect() {
-    if (attackTimer > 0 || inspectTimer > 0) return false;
-    inspectTimer = 2.1;
-    return true;
+    if (timer > 0 || inspect > 0) return false;
+    inspect = 2.0; return true;
   }
-
-  function update(dt, elapsed, options = {}) {
-    const { moving = false, lookX = 0, lookY = 0 } = options;
-    const inAttack = attackTimer > 0;
-    const inInspect = inspectTimer > 0;
-    let attackProgress = 0;
+  function update(dt, elapsed, opt = {}) {
+    const { moving = false, lookX = 0, lookY = 0 } = opt;
+    const inAttack = timer > 0;
+    const inInspect = inspect > 0;
+    let p = 0;
     if (inAttack) {
-      attackTimer = Math.max(0, attackTimer - dt);
-      attackProgress = 1 - attackTimer / attackDuration;
-      if (!attackSwingDone && attackProgress >= 0.18) {
-        attackSwingDone = true;
-        options.onSwing?.();
-      }
-      if (!attackHitDone && attackProgress >= 0.38) {
-        attackHitDone = true;
-        options.onAttackHit?.();
-      }
+      timer = Math.max(0, timer - dt);
+      p = 1 - timer / dur;
+      if (!swingDone && p >= 0.18) { swingDone = true; opt.onSwing?.(); }
+      if (!hitDone && p >= 0.36) { hitDone = true; opt.onAttackHit?.(); }
     }
-
-    const position = readyPosition.clone();
-    const rotation = new THREE.Euler(readyRotation.x, readyRotation.y, readyRotation.z);
-    const swayRate = moving ? 9.2 : 1.55;
-    position.y += Math.sin(elapsed * swayRate) * (moving ? 0.014 : 0.0032);
-    position.x += Math.sin(elapsed * swayRate * 0.5) * (moving ? 0.009 : 0.0025);
-    rotation.x += Math.cos(elapsed * swayRate) * (moving ? 0.022 : 0.004);
-    rotation.z += Math.sin(elapsed * swayRate * 0.5) * (moving ? 0.03 : 0.008);
-    rotation.y += THREE.MathUtils.clamp(lookX, -1, 1) * 0.035;
-    position.x += THREE.MathUtils.clamp(lookX, -1, 1) * 0.008;
-    position.y -= THREE.MathUtils.clamp(lookY, -1, 1) * 0.006;
+    const pos = readyPos.clone();
+    const rot = new THREE.Euler(readyRot.x, readyRot.y, readyRot.z);
+    const sway = moving ? 9.2 : 1.5;
+    pos.y += Math.sin(elapsed * sway) * (moving ? 0.013 : 0.0025);
+    pos.x += Math.sin(elapsed * sway * 0.5) * (moving ? 0.008 : 0.0015);
+    rot.x += Math.cos(elapsed * sway) * (moving ? 0.020 : 0.003);
+    rot.z += Math.sin(elapsed * sway * 0.5) * (moving ? 0.028 : 0.006);
+    rot.y += THREE.MathUtils.clamp(lookX, -1, 1) * 0.030;
+    pos.x += THREE.MathUtils.clamp(lookX, -1, 1) * 0.007;
+    pos.y -= THREE.MathUtils.clamp(lookY, -1, 1) * 0.005;
 
     if (inAttack) {
-      swingPositionCurve.getPoint(attackProgress, swingPosition);
-      swingRotationCurve.getPoint(attackProgress, swingRotation);
-      position.add(swingPosition);
-      rotation.x += swingRotation.x;
-      rotation.y += swingRotation.y;
-      rotation.z += swingRotation.z;
+      posCurve.getPoint(p, tmpPos); rotCurve.getPoint(p, tmpRot);
+      pos.add(tmpPos); rot.x += tmpRot.x; rot.y += tmpRot.y; rot.z += tmpRot.z;
     } else if (inInspect) {
-      inspectTimer = Math.max(0, inspectTimer - dt);
-      const inspectElapsed = 2.1 - inspectTimer;
-      const enter = THREE.MathUtils.smoothstep(inspectElapsed, 0.08, 0.46);
-      const leave = THREE.MathUtils.smoothstep(inspectElapsed, 1.52, 2.06);
-      const amount = enter * (1 - leave);
-      position.lerp(inspectPosition, amount);
-      rotation.x = THREE.MathUtils.lerp(rotation.x, inspectRotation.x, amount);
-      rotation.y = THREE.MathUtils.lerp(rotation.y, inspectRotation.y, amount);
-      rotation.z = THREE.MathUtils.lerp(rotation.z, inspectRotation.z, amount);
+      inspect = Math.max(0, inspect - dt);
+      const e = 2.0 - inspect;
+      const a = THREE.MathUtils.smoothstep(e, 0.08, 0.45) * (1 - THREE.MathUtils.smoothstep(e, 1.45, 1.95));
+      pos.lerp(inspectPos, a);
+      rot.x = THREE.MathUtils.lerp(rot.x, inspectRot.x, a);
+      rot.y = THREE.MathUtils.lerp(rot.y, inspectRot.y, a);
+      rot.z = THREE.MathUtils.lerp(rot.z, inspectRot.z, a);
     }
+    const flex = inAttack ? Math.sin(Math.PI * p) : inInspect ? 0.14 : 0;
+    handPivot.rotation.set(0.010 + flex * 0.08, count % 2 ? -0.018 : 0.018, flex * (count % 2 ? -0.09 : 0.09));
 
-    const wristFlex = inAttack ? Math.sin(Math.PI * attackProgress) : inInspect ? 0.16 : 0;
-    handPivot.rotation.set(0.012 + wristFlex * 0.09, swingCount % 2 ? -0.022 : 0.022, wristFlex * (swingCount % 2 ? -0.10 : 0.10));
-
-    weaponRoot.position.lerp(position, 1 - Math.exp(-dt * 17));
-    weaponRoot.rotation.x = THREE.MathUtils.damp(weaponRoot.rotation.x, rotation.x, 17, dt);
-    weaponRoot.rotation.y = THREE.MathUtils.damp(weaponRoot.rotation.y, rotation.y, 17, dt);
-    weaponRoot.rotation.z = THREE.MathUtils.damp(weaponRoot.rotation.z, rotation.z, 17, dt);
-
-    // subtle blade glint shift during inspect
-    const glintPhase = inInspect ? Math.sin(elapsed * 2.2) * 0.02 : 0;
-    knifeFill.intensity = 1.9 + glintPhase;
+    root.position.lerp(pos, 1 - Math.exp(-dt * 16));
+    root.rotation.x = THREE.MathUtils.damp(root.rotation.x, rot.x, 16, dt);
+    root.rotation.y = THREE.MathUtils.damp(root.rotation.y, rot.y, 16, dt);
+    root.rotation.z = THREE.MathUtils.damp(root.rotation.z, rot.z, 16, dt);
   }
 
-  return {
-    root: weaponRoot,
-    attack,
-    startInspect,
-    update,
-    get attacking() {
-      return attackTimer > 0;
-    },
-    get inspecting() {
-      return inspectTimer > 0;
-    },
-  };
+  return { root, attack, startInspect, update, get attacking() { return timer > 0; }, get inspecting() { return inspect > 0; } };
 }
