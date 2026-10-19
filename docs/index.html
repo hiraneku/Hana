@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#090d0d" />
+    <meta name="description" content="Hana: Dead Signal — mobile-first survival horror FPS prototype." />
+    <title>HANA // DEAD SIGNAL</title>
+    <script type="module" crossorigin src="/Hana/assets/index-lSUrrHFs.js"></script>
+    <link rel="stylesheet" crossorigin href="/Hana/assets/index-D5hiR0j3.css">
+  </head>
+  <body>
+    <main id="app">
+      <div id="game-surface" aria-label="Game 3D">
+        <canvas id="world" aria-label="Tampilan game"></canvas>
+        <div class="scene-vignette" aria-hidden="true"></div>
+        <div class="scene-grain" aria-hidden="true"></div>
+        <div class="scanline" aria-hidden="true"></div>
+
+        <div id="hud" class="hud hidden">
+          <div class="hud-top-left">
+            <div class="sector-chip"><span class="status-dot"></span><span>SEKTOR 07</span><span class="chip-divider"></span><span id="clock">02:43 AM</span></div>
+            <div class="objective-block">
+              <span class="micro-label">TUJUAN SAAT INI</span>
+              <strong id="objective">BERSIHKAN AREA</strong>
+              <span class="objective-sub"><i></i><span id="enemy-count">3</span> TERDETEKSI DI DEPAN</span>
+            </div>
+          </div>
+
+          <div class="hud-top-right">
+            <div class="signal-icon"><span></span><span></span><span></span><span></span></div>
+            <div><span class="micro-label">KONEKSI RADIO</span><strong>TERPUTUS</strong></div>
+          </div>
+          <button id="pause-button" class="pause-button" aria-label="Jeda permainan">Ⅱ</button>
+
+          <div id="reticle" class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+          <div id="hitmarker" class="hitmarker" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+
+          <div class="hud-bottom-left">
+            <div class="survivor-mark"><span>H</span></div>
+            <div class="vitals">
+              <div class="vitals-heading"><span class="micro-label">KONDISI</span><strong id="health-value">100</strong></div>
+              <div class="health-track"><div id="health-fill"></div><span></span><span></span><span></span><span></span></div>
+              <div class="vitals-foot"><span><i class="pulse-dot"></i>STABIL</span><span id="kill-count">0 ELIMINASI</span></div>
+            </div>
+          </div>
+
+          <div class="hud-bottom-center" id="desktop-hints">
+            <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> GERAK</span>
+            <span><kbd>R</kbd> ISI ULANG</span>
+            <span><kbd>I</kbd> INSPEKSI</span>
+            <span><kbd>F</kbd> SENTER</span>
+          </div>
+
+          <div class="weapon-panel">
+            <div class="weapon-topline"><span class="weapon-class">SIDEARM · 9×19</span><span class="weapon-slot">01</span></div>
+            <div class="weapon-name-row"><div><span class="weapon-category">PISTOL LAYANAN</span><strong>G17</strong></div><div class="ammo-readout"><strong id="ammo">17</strong><span class="ammo-slash">/</span><span id="reserve">68</span></div></div>
+            <div class="weapon-meta"><span><i></i>SIAP DIGUNAKAN</span><span id="weapon-mode">SEMI-AUTO</span></div>
+            <div class="reload-track"><div id="reload-fill"></div></div>
+          </div>
+
+          <div id="toast" class="toast" role="status"></div>
+          <div id="mobile-controls" class="mobile-controls">
+            <div id="joystick" class="joystick" aria-label="Joystick gerak"><div class="joystick-ring"></div><div id="joystick-knob" class="joystick-knob"><span></span></div><label>GERAK</label></div>
+            <div class="mobile-actions">
+              <button id="aim-button" class="action-button aim-button" aria-label="Bidik"><span class="button-ring"></span><b>ADS</b></button>
+              <button id="reload-button" class="action-button reload-button" aria-label="Isi ulang"><span class="button-icon">↻</span><b>ISI ULANG</b></button>
+              <button id="flash-button" class="action-button flash-button" aria-label="Senter"><span class="button-icon">◉</span><b>SENTER</b></button>
+              <button id="fire-button" class="fire-button" aria-label="Tembak"><span class="fire-core"></span><b>TEMBAK</b></button>
+              <button id="inspect-button" class="inspect-button" aria-label="Inspeksi senjata">INSPEKSI</button>
+            </div>
+            <div id="look-zone" class="look-zone" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <section id="intro-screen" class="screen-overlay">
+          <div class="intro-grit" aria-hidden="true"></div>
+          <div class="intro-topline"><div class="brand-lockup"><span class="brand-mark">H<span></span></span><div><b>HANA</b><small>FIELD ARCHIVE · 2026</small></div></div><div class="build-tag"><i></i>PROTOTIPE PLAYABLE <span>0.1.0</span></div></div>
+          <div class="intro-content">
+            <div class="eyebrow"><span class="eyebrow-line"></span>CATATAN PENYINTAS · LOG 07</div>
+            <h1>DEAD<br /><em>SIGNAL</em></h1>
+            <p class="intro-copy">Malam ketiga tanpa komunikasi. Sesuatu bergerak di balik kabut.<br /><strong>Jangan biarkan mereka mendekat.</strong></p>
+            <div class="intro-divider"></div>
+            <div class="briefing-row"><div><span class="micro-label">LOKASI</span><strong>KORIDOR INDUSTRI · EAST BAY</strong></div><div><span class="micro-label">ANCAMAN</span><strong class="threat-text">TIDAK DIKETAHUI</strong></div></div>
+            <button id="start-button" class="start-button"><span class="start-icon">▶</span><span>MASUK KE SEKTOR</span><i>↗</i></button>
+            <div class="control-note"><span class="desktop-note">WASD GERAK <b>·</b> MOUSE ARAHKAN <b>·</b> KLIK TEMBAK</span><span class="touch-note">MODE MOBILE · LANDSCAPE DISARANKAN</span></div>
+          </div>
+          <div class="intro-bottom"><span>HANA / SURVIVAL SYSTEMS</span><span>BUILD 07.19 · OFFLINE SESSION</span></div>
+          <div class="corner-stamp"><span>NO<br />RESCUE</span><i></i></div>
+        </section>
+
+        <section id="pause-screen" class="screen-overlay compact-overlay hidden">
+          <div class="pause-card"><span class="eyebrow"><span class="eyebrow-line"></span>SESI DIJEDA</span><h2>TAHAN NAPAS.</h2><p>Ancaman masih ada di sektor ini.</p><button id="resume-button" class="start-button"><span class="start-icon">▶</span><span>LANJUTKAN</span><i>↗</i></button><span class="pause-hint">TEKAN ESC UNTUK JEDA / LANJUT</span></div>
+        </section>
+
+        <section id="end-screen" class="screen-overlay compact-overlay hidden">
+          <div class="pause-card"><div class="eyebrow"><span class="eyebrow-line"></span><span id="end-eyebrow">SEKTOR 07</span></div><h2 id="end-title">SEKTOR AMAN.</h2><p id="end-copy">Untuk saat ini.</p><button id="restart-button" class="start-button"><span class="start-icon">↻</span><span>ULANGI MISI</span><i>↗</i></button></div>
+        </section>
+
+        <div id="rotate-hint" class="rotate-hint"><span>↻</span> PUTAR PERANGKAT UNTUK PENGALAMAN TERBAIK</div>
+        <div class="screen-edge" aria-hidden="true"></div>
+      </div>
+    </main>
+  </body>
+</html>
