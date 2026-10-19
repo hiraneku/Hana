@@ -25,6 +25,7 @@ export class Screens {
         Landscape, sound on · stuck without a mouse? Hit <b>CONTROLS</b> in the HUD to put the
         on-screen sticks up
       </p>
+      <p class="build-stamp" id="build-stamp"></p>
     `
     );
 
@@ -45,6 +46,9 @@ export class Screens {
     this.gameOver.classList.add('hidden');
 
     this.start.querySelector('#start-btn').addEventListener('click', () => this.onStart());
+
+    const stamp = this.start.querySelector('#build-stamp');
+    if (stamp) stamp.textContent = `build ${globalThis.__HANA_BUILD__ || 'dev'}`;
     this.gameOver.querySelector('#retry-btn').addEventListener('click', () => this.onStart());
     this.deathLine = this.gameOver.querySelector('#death-line');
     this.goWaves = this.gameOver.querySelector('#go-waves');

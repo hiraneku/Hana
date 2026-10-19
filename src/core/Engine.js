@@ -5,20 +5,30 @@ import * as THREE from 'three';
  * Everything else in the game registers an `update(dt)` callback here.
  */
 export class Engine {
-  constructor(container) {
+  /**
+   * @param {HTMLElement} container
+   * @param {{renderer?: object, isTouch?: boolean}} [options]
+   *   `renderer` lets the headless tests drive the real game without a GPU.
+   */
+  constructor(container, options = {}) {
     this.container = container;
     this.clock = new THREE.Clock();
     this.updatables = [];
     this.elapsed = 0;
 
     this.isTouch =
-      matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      options.isTouch !== undefined
+        ? options.isTouch
+        : matchMedia('(pointer: coarse)').matches ||
+          /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    this.renderer = new THREE.WebGLRenderer({
-      antialias: !this.isTouch,
-      powerPreference: 'high-performance',
-      stencil: false,
-    });
+    this.renderer =
+      options.renderer ||
+      new THREE.WebGLRenderer({
+        antialias: !this.isTouch,
+        powerPreference: 'high-performance',
+        stencil: false,
+      });
     this.maxPixelRatio = this.isTouch ? 1.6 : 2;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.maxPixelRatio));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -103,7 +113,12 @@ export class Engine {
       this.renderer.render(this.scene, this.camera);
     } catch (err) {
       this._errors = (this._errors || 0) + 1;
-      if (this._errors === 1) console.error('[HANA] frame error:', err);
+      // Surface the first failure on screen: a phone has no console, and a
+      // silently dying loop looks exactly like "the game is broken".
+      if (this._errors === 1) {
+        console.error('[HANA] frame error:', err);
+        this.onError?.(err);
+      }
       if (this._errors > 180) {
         console.error('[HANA] too many frame errors, stopping loop');
         this.stop();

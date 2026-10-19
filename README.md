@@ -108,6 +108,17 @@ Two suites, both headless:
   taps on the HUD do not move the player. This one exists because of a bug
   that shipped: the touch layer is `pointer-events: none`, so a listener
   attached to the layer itself never fired — you could shoot but never walk.
+- **`npm run test:game`** — boots the actual `Game` class with a stub renderer
+  and plays it: tap start, drag both sticks, hold the trigger, survive twenty
+  seconds of waves, die, restart. Catches wiring breakage between the modules
+  and fails loudly on any exception inside the frame loop.
+
+### Debugging on a phone
+
+Add **`?debug=1`** to the URL for a live readout of state, touch, input axis,
+player position and frame errors. The start screen also prints the build hash —
+always check it before reporting a bug, because **GitHub Pages takes 30–190
+seconds to publish a push** and phones cache aggressively.
 
 ### Layout
 

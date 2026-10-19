@@ -1,11 +1,27 @@
 import { defineConfig } from 'vite';
+import { execSync } from 'node:child_process';
 
 // GitHub Pages serves the site from https://<user>.github.io/<repo>/ so every
 // asset has to be requested relative to that sub-path.
 const BASE = process.env.GH_PAGES_BASE || '/Hana/';
 
+// Stamped into the build so a bug report can say which build it was.
+let BUILD = 'dev';
+try {
+  BUILD = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+    .toString()
+    .trim();
+} catch {
+  /* not a git checkout */
+}
+
 export default defineConfig({
   base: BASE,
+  define: {
+    // Read via globalThis so the plain Node tests (no Vite) get undefined
+    // instead of a ReferenceError.
+    'globalThis.__HANA_BUILD__': JSON.stringify(BUILD),
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

@@ -8,9 +8,10 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "npm run test:sim && npm run test:ui",
+    "test": "npm run test:sim && npm run test:ui && npm run test:game",
     "test:sim": "node tools/smoke.mjs",
-    "test:ui": "node tools/ui-test.mjs"
+    "test:ui": "node tools/ui-test.mjs",
+    "test:game": "node tools/game-test.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"

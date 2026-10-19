@@ -134,6 +134,15 @@ canvas#game-canvas {
   transform: translateY(1px);
 }
 
+.build-stamp {
+  margin: 0;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: clamp(0.5rem, 2.1vmin, 0.65rem);
+  letter-spacing: 0.18em;
+  color: #4d545d;
+  text-transform: uppercase;
+}
+
 .hint {
   font-size: clamp(0.65rem, 2.9vmin, 0.85rem);
   font-weight: 500;
@@ -764,6 +773,54 @@ canvas#game-canvas {
 /* Desktop: no on-screen gamepad. */
 body:not(.touch-device) #touch-layer {
   display: none;
+}
+
+#debug-panel {
+  position: fixed;
+  left: calc(var(--safe-l) + 0.4rem);
+  top: calc(var(--safe-t) + 0.4rem);
+  z-index: 60;
+  margin: 0;
+  padding: 0.5em 0.7em;
+  max-width: 92vw;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: clamp(0.55rem, 2.4vmin, 0.72rem);
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: #9ad14b;
+  background: rgba(3, 5, 7, 0.78);
+  border: 1px solid rgba(154, 209, 75, 0.35);
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#error-banner {
+  position: fixed;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  z-index: 70;
+  max-width: 90vw;
+  padding: 0.7em 1em;
+  display: none;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: clamp(0.6rem, 2.7vmin, 0.8rem);
+  line-height: 1.5;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  color: #ffd7d7;
+  background: rgba(60, 6, 10, 0.92);
+  border: 1px solid var(--blood);
+}
+
+#error-banner.show {
+  display: block;
+}
+
+#error-banner.fatal {
+  top: 40%;
+  font-size: clamp(0.7rem, 3.2vmin, 1rem);
 }
 
 #fps {
