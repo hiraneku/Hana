@@ -14,6 +14,9 @@
 export class Input {
   constructor(domElement) {
     this.domElement = domElement;
+    // Focusable canvas: in an embedded preview the keyboard only reaches us
+    // once something inside the frame actually has focus.
+    if (domElement) domElement.tabIndex = 0;
     this.move = { x: 0, y: 0 };
     // `look` is a per-frame pixel delta (mouse). `lookAxis` is a held
     // direction in -1..1 (thumbstick) that the player turns along over time.
@@ -25,6 +28,9 @@ export class Input {
     this.mouseFiring = false;
     this.touchFiring = false;
     this.touchSprint = false;
+    // Right-button drag turns the camera when pointer lock is unavailable
+    // (embedded previews, locked-down browsers).
+    this.dragging = false;
     this.firing = false;
     this.sprint = false;
     this.reloadQueued = false;
@@ -83,24 +89,53 @@ export class Input {
 
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 0) this.mouseFiring = true;
+      if (e.button === 2) this.dragging = true;
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.mouseFiring = false;
+      if (e.button === 2) this.dragging = false;
     });
-    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('blur', () => {
+      this.mouseFiring = false;
+      this.dragging = false;
+    });
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    // Look with the mouse whenever the pointer is locked, or while the right
+    // button is held (the fallback for embedded previews where pointer lock
+    // is refused).
     window.addEventListener('mousemove', (e) => {
-      if (!this.pointerLocked) return;
+      if (!this.pointerLocked && !this.dragging) return;
       this.look.x += e.movementX || 0;
       this.look.y += e.movementY || 0;
     });
   }
 
+  get canLook() {
+    return this.pointerLocked || this.dragging;
+  }
+
+  /**
+   * Ask for pointer lock. Returns a promise that resolves true only if the
+   * browser actually granted it — embedded previews almost always say no.
+   */
   requestPointerLock() {
-    if (this.domElement.requestPointerLock) {
-      const p = this.domElement.requestPointerLock();
-      if (p && typeof p.catch === 'function') p.catch(() => {});
+    const el = this.domElement;
+    if (!el || !el.requestPointerLock) return Promise.resolve(false);
+
+    try {
+      const p = el.requestPointerLock();
+      if (p && typeof p.then === 'function') {
+        return p.then(() => true).catch(() => false);
+      }
+    } catch {
+      return Promise.resolve(false);
     }
+
+    // Older browsers never resolve anything: check back shortly.
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(document.pointerLockElement === el), 350);
+    });
   }
 
   exitPointerLock() {

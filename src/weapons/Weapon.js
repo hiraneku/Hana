@@ -19,13 +19,14 @@ const _d = new THREE.Vector3();
  * a magazine that always seems to run dry at the worst moment.
  */
 export class Weapon {
-  constructor(engine, { arena, horde, player, particles, hud, onHit }) {
+  constructor(engine, { arena, horde, player, particles, hud, audio, onHit }) {
     this.engine = engine;
     this.arena = arena;
     this.horde = horde;
     this.player = player;
     this.particles = particles;
     this.hud = hud;
+    this.audio = audio || null;
     this.onHit = onHit;
     this.camera = engine.camera;
 
@@ -127,6 +128,7 @@ export class Weapon {
   startReload() {
     if (this.reloading > 0 || this.mag >= MAG_SIZE || this.reserve <= 0) return;
     this.reloading = RELOAD_TIME;
+    this.audio?.reloadClick(1);
     this.refreshHud();
   }
 
@@ -136,6 +138,7 @@ export class Weapon {
     this.mag += take;
     this.reserve -= take;
     this.reloading = 0;
+    this.audio?.reloadClick(1.45);
     this.refreshHud();
   }
 
@@ -155,6 +158,7 @@ export class Weapon {
     this.shots++;
     this.cooldown = FIRE_RATE;
     this.kick = Math.min(1.4, this.kick + 1);
+    this.audio?.shot();
 
     this.player.addRecoil(0.02 + Math.random() * 0.012, (Math.random() - 0.5) * 0.012);
 
@@ -194,10 +198,12 @@ export class Weapon {
         0.55
       );
       this.hud.hitmarker_(killed);
+      this.audio?.impactFlesh();
       this.onHit?.(hitZombie, dmg, head, killed);
     } else if (wallHit) {
       this.particles.burst(_v.x, _v.y, _v.z, 5, COLORS.dust, 1.6, 1, 0.35);
       this.particles.burst(_v.x, _v.y, _v.z, 3, COLORS.spark, 2.4, 1, 0.18);
+      this.audio?.impactWall();
     }
 
     this.flash.visible = true;
@@ -241,6 +247,9 @@ export class Weapon {
       if (this.reloading <= 0) this._finishReload();
     } else if (input.firing && this.cooldown <= 0 && this.mag > 0) {
       this._fire();
+    } else if (input.firing && this.cooldown <= 0 && this.mag === 0 && this.reserve === 0) {
+      this.cooldown = 0.35;
+      this.audio?.dryFire();
     }
 
     if (input.reloadQueued) this.startReload();

@@ -54,10 +54,22 @@ const GEO = {
   ]),
 };
 
+const EYE = new THREE.Color(0xd6ff5a);
+
+// Two little glowing dots on the face. Unlit, so they punch through the dark
+// long before you can make out the body — the first thing you ever see is a
+// pair of eyes sliding out of the fog.
+const EYE_GEO = part([
+  [0.055, 0.045, 0.03, -0.07, 1.81, -0.152, EYE],
+  [0.055, 0.045, 0.03, 0.07, 1.81, -0.152, EYE],
+]);
+
 const BASE_MAT = new THREE.MeshLambertMaterial({
   vertexColors: true,
   emissive: new THREE.Color(0x120203),
 });
+
+const EYE_MAT = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
 
 const TYPES = {
   walker: { hp: 60, speed: [1.15, 1.7], damage: 11, scale: 1, score: 100 },
@@ -91,6 +103,12 @@ export class Zombie {
       m.castShadow = true;
       this.group.add(m);
     }
+
+    // Eyes ride along with the torso so they bob and lean with it.
+    this.eyes = new THREE.Mesh(EYE_GEO, EYE_MAT);
+    this.eyes.visible = false;
+    this.body.add(this.eyes);
+
     scene.add(this.group);
 
     this.pos = new THREE.Vector3();
@@ -224,6 +242,8 @@ export class Zombie {
       const ease = 1 - Math.pow(1 - t, 3);
       this.group.rotation.x = this.fallSign * (Math.PI / 2) * ease * 0.96;
       this.group.rotation.z = Math.sin(this.deadTimer * 2) * 0.04 * (1 - t);
+      // The lights go out a beat after the body does.
+      this.eyes.visible = this.deadTimer < 1.6;
       return;
     }
 
@@ -362,8 +382,10 @@ export class Zombie {
     this.group.position.set(this.pos.x, 0, this.pos.z);
     this.group.rotation.set(0, this.yaw, 0);
 
-    // Cheap LOD: skip animation work for anything the fog has already eaten.
+    // Cheap LOD: skip animation work for anything the fog has already eaten,
+    // and only pay for the eyes when they are close enough to read.
     this.group.visible = dist < 52;
+    this.eyes.visible = dist < 26;
   }
 }
 

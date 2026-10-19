@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { Engine } from './core/Engine.js';
 import { Input } from './core/Input.js';
 import { HUD } from './ui/HUD.js';
@@ -9,6 +8,8 @@ import { Player } from './player/Player.js';
 import { Horde } from './entities/Horde.js';
 import { Particles, COLORS } from './fx/Particles.js';
 import { Weapon } from './weapons/Weapon.js';
+import { GameAudio } from './audio/Audio.js';
+import { MAX_HEALTH } from './player/Player.js';
 
 const WAVE_BREAK = 6; // seconds of breathing room between waves
 
@@ -31,14 +32,19 @@ class Game {
     this.player = new Player(this.engine, this.arena, this.input, this.hud);
     this.horde = new Horde(this.engine.scene, this.arena, { max: isTouch ? 26 : 40 });
 
+    this.audio = new GameAudio();
+
     this.weapon = new Weapon(this.engine, {
       arena: this.arena,
       horde: this.horde,
       player: this.player,
       particles: this.particles,
       hud: this.hud,
+      audio: this.audio,
       onHit: (z, dmg, head, killed) => this._onHit(z, dmg, head, killed),
     });
+
+    this.player.onHurt = () => this.audio.hurt();
 
     this.screens = new Screens({ onStart: () => this.start() });
 
@@ -54,17 +60,47 @@ class Game {
 
     this.player.onDeath = () => this._onDeath();
 
+    this.hud.setControlsLabel(isTouch ? 'touch' : 'mouse');
+    this.hud.onControlsToggle(() => this.toggleVirtualControls());
+
     this.engine.add({ update: (dt) => this.update(dt) });
     this.engine.start();
 
-    // Desktop: clicking the canvas re-captures the mouse.
+    // Desktop: clicking the canvas re-captures the mouse (and un-mutes audio
+    // after the tab lost focus).
     this.engine.renderer.domElement.addEventListener('click', () => {
-      if (this.state === 'playing' && !isTouch) this.input.requestPointerLock();
+      if (this.state !== 'playing') return;
+      this.audio.start();
+      if (!isTouch && !this.touch.visible) this.input.requestPointerLock();
+    });
+
+    // M is the panic button.
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyM') {
+        const on = this.audio.toggleMute();
+        this.hud.toast(on ? 'Sound off' : 'Sound on', 1.6);
+      }
     });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.input.firing = false;
+      if (document.hidden) {
+        this.input.firing = false;
+        this.audio.suspend();
+      }
     });
+  }
+
+  /** Show or hide the on-screen sticks — works on desktop too. */
+  toggleVirtualControls() {
+    const on = !this.touch.visible;
+    this.touch.setForced(on);
+    this.hud.setControlsLabel(on ? 'touch' : 'mouse');
+    if (!on) {
+      this.hud.toast('Mouse look: hold right button to turn', 3);
+      if (!this.engine.isTouch) this.input.requestPointerLock();
+    } else {
+      this.hud.toast('On-screen controls on', 2.2);
+    }
   }
 
   // ------------------------------------------------------------------ flow
@@ -91,8 +127,22 @@ class Game {
     this.hud.setWave(1);
     this.touch.show();
     this.input.enable();
+    this.audio.start();
+    // Grab keyboard focus so WASD lands inside the game frame, not the page
+    // hosting it.
+    this.engine.renderer.domElement.focus?.();
 
-    if (!this.engine.isTouch) this.input.requestPointerLock();
+    // Pointer lock is the good path on desktop, but embedded previews (and
+    // some browsers) refuse it. If that happens, put the sticks on screen so
+    // the game is still playable with a mouse.
+    if (!this.engine.isTouch) {
+      this.input.requestPointerLock().then((locked) => {
+        if (locked || this.state !== 'playing') return;
+        this.touch.setForced(true);
+        this.hud.setControlsLabel('touch');
+        this.hud.toast('Pointer lock refused — on-screen controls enabled', 4);
+      });
+    }
   }
 
   _onDeath() {
@@ -108,7 +158,29 @@ class Game {
     this.kills++;
     this.score += zombie.scoreValue + (head ? 50 : 0);
     this.hud.setScore(this.score);
+    this.audio.death(this._panTo(zombie.pos.x, zombie.pos.z));
     if (Math.random() < 0.14) this.weapon.addAmmo(7);
+  }
+
+  /** Where is this sound, left or right? -1 = hard left, 1 = hard right. */
+  _panTo(x, z) {
+    const dx = x - this.player.pos.x;
+    const dz = z - this.player.pos.z;
+    const d = Math.hypot(dx, dz) || 1;
+    const rx = Math.cos(this.player.yaw);
+    const rz = -Math.sin(this.player.yaw);
+    return Math.max(-1, Math.min(1, (dx / d) * rx + (dz / d) * rz));
+  }
+
+  /** Closest living zombie, for directional growls. */
+  _nearestThreat() {
+    let best = null;
+    for (const z of this.horde.active) {
+      if (z.isCorpse) continue;
+      const d = z.pos.distanceTo(this.player.pos);
+      if (!best || d < best.dist) best = { dist: d, pan: this._panTo(z.pos.x, z.pos.z) };
+    }
+    return best;
   }
 
   _beginWave() {
@@ -188,6 +260,14 @@ class Game {
     });
 
     if (this.state === 'playing') this.weapon.update(dt, this.input);
+
+    this.audio.update(dt, {
+      health: this.player.health,
+      maxHealth: MAX_HEALTH,
+      exhausted: this.player.exhausted,
+      alive: this.player.alive && this.state === 'playing',
+      nearest: this._nearestThreat(),
+    });
 
     this.particles.update(dt);
     this.hud.update(dt);

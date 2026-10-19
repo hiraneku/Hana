@@ -16,6 +16,15 @@
   </head>
   <body>
     <div id="app"></div>
+
+    <!-- Screen-space horror grade: sits between the canvas and the HUD. -->
+    <div id="fx-layer" aria-hidden="true">
+      <div class="fx-grade"></div>
+      <div class="fx-vignette"></div>
+      <div class="fx-scanlines"></div>
+      <div class="fx-grain"></div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

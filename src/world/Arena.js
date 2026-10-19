@@ -47,6 +47,9 @@ export class Arena {
     this._build();
     this._flush();
     this._lights();
+    this._sky();
+    this._skyline();
+    this._dust();
   }
 
   // ---------------------------------------------------------------- builders
@@ -238,11 +241,150 @@ export class Arena {
     ];
   }
 
+  // -------------------------------------------------------------------- sky
+
+  /**
+   * Stars and a moon, parked just inside the far plane with fog disabled so
+   * they survive the murk. Small, cheap, and it stops the sky from being a
+   * flat dead colour.
+   */
+  _sky() {
+    const count = 320;
+    const pos = new Float32Array(count * 3);
+    const shade = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      // Upper hemisphere only.
+      const theta = Math.random() * Math.PI * 2;
+      const y = 0.12 + Math.random() * 0.88;
+      const r = Math.sqrt(1 - y * y);
+      // Keep the whole shell inside the camera's far plane.
+      const R = 96;
+      pos[i * 3] = Math.cos(theta) * r * R;
+      pos[i * 3 + 1] = y * R * 0.75 + 4;
+      pos[i * 3 + 2] = Math.sin(theta) * r * R;
+      const b = 0.35 + Math.random() * 0.65;
+      shade[i * 3] = b * 0.85;
+      shade[i * 3 + 1] = b * 0.92;
+      shade[i * 3 + 2] = b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(shade, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 1.6,
+      sizeAttenuation: false,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      fog: false,
+      depthWrite: false,
+    });
+    const stars = new THREE.Points(geo, mat);
+    stars.frustumCulled = false;
+    this.scene.add(stars);
+
+    // Moon: a flat disc plus a soft halo, fixed over the north-east wall.
+    const moon = new THREE.Mesh(
+      new THREE.CircleGeometry(6.5, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xdfe8f2,
+        fog: false,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide,
+      })
+    );
+    moon.position.set(70, 46, -88);
+    moon.lookAt(0, 6, 0);
+    this.scene.add(moon);
+
+    const halo = new THREE.Mesh(
+      new THREE.CircleGeometry(17, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0x8fb0cf,
+        fog: false,
+        transparent: true,
+        opacity: 0.09,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    halo.position.copy(moon.position);
+    halo.lookAt(0, 6, 0);
+    this.scene.add(halo);
+  }
+
+  /** Dead city on the horizon — pure silhouette, no collision, no cost. */
+  _skyline() {
+    const geos = [];
+    let seed = 20261019;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+
+    for (let i = 0; i < 46; i++) {
+      const angle = rnd() * Math.PI * 2;
+      const dist = 46 + rnd() * 52;
+      const w = 5 + rnd() * 13;
+      const d = 5 + rnd() * 13;
+      const h = 7 + rnd() * 34;
+      const g = new THREE.BoxGeometry(w, h, d);
+      g.translate(Math.cos(angle) * dist, h / 2 - 1, Math.sin(angle) * dist);
+      geos.push(g);
+    }
+
+    // A few radio masts for shape.
+    for (let i = 0; i < 5; i++) {
+      const angle = rnd() * Math.PI * 2;
+      const dist = 55 + rnd() * 40;
+      const h = 30 + rnd() * 22;
+      const g = new THREE.BoxGeometry(0.7, h, 0.7);
+      g.translate(Math.cos(angle) * dist, h / 2 - 1, Math.sin(angle) * dist);
+      geos.push(g);
+    }
+
+    const mesh = new THREE.Mesh(
+      mergeGeometries(geos, false),
+      new THREE.MeshBasicMaterial({ color: 0x0c1215 })
+    );
+    mesh.matrixAutoUpdate = false;
+    this.scene.add(mesh);
+    geos.forEach((g) => g.dispose());
+  }
+
+  /** Slow floating dust: the thing that makes a flashlight beam feel real. */
+  _dust() {
+    const count = 420;
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 66;
+      pos[i * 3 + 1] = Math.random() * 7 + 0.2;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 66;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.05,
+      color: 0x9fb0bb,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    this.dust = new THREE.Points(geo, mat);
+    this.dust.frustumCulled = false;
+    this.scene.add(this.dust);
+  }
+
   // ------------------------------------------------------------------ lights
 
   _lights() {
-    this.scene.add(new THREE.AmbientLight(0x2b3648, 0.6));
-    this.scene.add(new THREE.HemisphereLight(0x3b4a66, 0x0b0d10, 0.55));
+    // Deliberately starved: the yard should read as almost pitch black, lit
+    // only by the moon, your torch and the few lamps that still work.
+    this.scene.add(new THREE.AmbientLight(0x22303f, 0.34));
+    this.scene.add(new THREE.HemisphereLight(0x2b3a52, 0x07090b, 0.3));
 
     const moon = new THREE.DirectionalLight(0x93a9cf, 0.9);
     moon.position.set(26, 40, -20);
@@ -322,6 +464,13 @@ export class Arena {
 
   update(dt) {
     this.time += dt;
+
+    // Dust drifts. Rotating the whole cloud is far cheaper than moving 420
+    // particles, and in the dark nobody can tell the difference.
+    if (this.dust) {
+      this.dust.rotation.y += dt * 0.006;
+      this.dust.position.y = Math.sin(this.time * 0.25) * 0.35;
+    }
 
     for (const l of this.lamps) {
       l.timer -= dt;

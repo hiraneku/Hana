@@ -44,6 +44,8 @@ export class Player {
     this.shake = 0;
     this.recoilPitch = 0;
     this.recoilYaw = 0;
+    this.torchTimer = 1;
+    this.torchDip = 0;
 
     this.onDeath = null;
 
@@ -52,7 +54,7 @@ export class Player {
   }
 
   _buildFlashlight() {
-    const light = new THREE.SpotLight(0xfff2d6, 150, 60, 0.55, 0.6, 1.2);
+    const light = new THREE.SpotLight(0xfff2d6, 150, 60, 0.5, 0.65, 1.2);
     light.position.set(0.16, -0.14, 0.05);
     const target = new THREE.Object3D();
     target.position.set(0, 0, -1);
@@ -60,6 +62,55 @@ export class Player {
     this.camera.add(target);
     light.target = target;
     this.flashlight = light;
+    this.flashBase = 150;
+
+    // Fake volumetric shaft: a cone with a gradient baked into vertex colours
+    // and additive blending. Cheap, and it sells the torch more than the
+    // spotlight alone ever does.
+    const H = 17;
+    const R = 4.2;
+    const geo = new THREE.ConeGeometry(R, H, 20, 1, true);
+    geo.translate(0, -H / 2, 0); // apex at the origin
+    geo.rotateX(Math.PI / 2); // body runs toward -Z, i.e. forward
+    const p = geo.attributes.position;
+    const colors = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const t = Math.min(1, Math.abs(p.getZ(i)) / H);
+      const a = Math.pow(1 - t, 2.3) * 0.15;
+      colors[i * 3] = a;
+      colors[i * 3 + 1] = a * 0.94;
+      colors[i * 3 + 2] = a * 0.78;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const beam = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: false,
+      })
+    );
+    beam.position.set(0.16, -0.14, 0);
+    beam.frustumCulled = false;
+    this.camera.add(beam);
+    this.beam = beam;
+  }
+
+  /** Dying-battery flicker for the torch. */
+  _flickerTorch(dt) {
+    this.torchTimer -= dt;
+    if (this.torchTimer <= 0) {
+      this.torchTimer = 0.35 + Math.random() * 2.6;
+      this.torchDip = Math.random() < 0.3 ? 0.2 + Math.random() * 0.5 : 0;
+    }
+    if (this.torchDip > 0) this.torchDip -= dt;
+    const dip = this.torchDip > 0 ? 0.42 : 1;
+    const hum = 0.94 + 0.06 * Math.sin(this.bob * 0.7);
+    this.flashlight.intensity = this.flashBase * dip * hum;
+    if (this.beam) this.beam.visible = dip > 0.6;
   }
 
   get forward() {
@@ -88,6 +139,7 @@ export class Player {
     this.health -= amount;
     this.shake = Math.min(1.2, this.shake + amount / 28);
     this.hud.damageFlash(Math.min(0.9, amount / 45));
+    this.onHurt?.(amount);
     if (this.health <= 0) {
       this.health = 0;
       this.alive = false;
@@ -205,6 +257,8 @@ export class Player {
       this.yaw + this.recoilYaw,
       deathRoll
     );
+
+    this._flickerTorch(dt);
 
     // The weapon raycast reads the camera's world transform during the very
     // same frame, before the renderer gets a chance to refresh it.

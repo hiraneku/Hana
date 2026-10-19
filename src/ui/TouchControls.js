@@ -11,6 +11,8 @@
 export class TouchControls {
   constructor(input, isTouch = false) {
     this.input = input;
+    this.isTouch = isTouch;
+    this.forced = false; // shown on a non-touch device on purpose
     this.pointers = new Map();
     this.enabled = false;
 
@@ -43,9 +45,32 @@ export class TouchControls {
     layer.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  get visible() {
+    return !this.layer.classList.contains('hidden');
+  }
+
   show() {
+    if (!this.isTouch && !this.forced) return;
     this.layer.classList.remove('hidden');
     this.enabled = true;
+  }
+
+  /**
+   * Force the gamepad on (or off) regardless of device detection.
+   * Used by the HUD toggle and by the pointer-lock fallback: if a desktop
+   * browser — or an embedded preview — refuses pointer lock, the sticks are
+   * the only way left to turn around.
+   */
+  setForced(on) {
+    this.forced = on;
+    if (on) {
+      document.body.classList.add('touch-device');
+      this.layer.classList.remove('hidden');
+      this.enabled = true;
+    } else {
+      if (!this.isTouch) document.body.classList.remove('touch-device');
+      this.hide();
+    }
   }
 
   hide() {

@@ -17,13 +17,19 @@ long-term goal of feeling like a native mobile game.
 | Action | Touch | Keyboard / mouse |
 | --- | --- | --- |
 | Move | Left half of the screen (floating stick) | `W` `A` `S` `D` |
-| Look | Right half of the screen (floating stick) | Mouse (click to lock pointer) |
+| Look | Right half of the screen (floating stick) | Mouse, or **hold the right button** to turn |
 | Shoot | **FIRE** button | Left mouse button / `Space` |
 | Reload | **RELOAD** button | `R` |
 | Sprint | **RUN** button (drains stamina) | `Shift` |
+| Mute | — | `M` |
 
 Run out of stamina and you slow to a crawl for a moment — kiting the horde is
 not free.
+
+**No pointer lock?** Some embedded previews refuse it. The game notices and
+turns the on-screen sticks on by itself; you can also flip them any time with
+the **CONTROLS** button in the top-right of the HUD. The sticks work fine with a
+mouse, so the game is always playable.
 
 ---
 
@@ -42,6 +48,13 @@ not free.
   an ammo drop and a rare health pickup between them.
 - **HUD** with vitals, stamina, ammo, wave, score, hit-marker and a damage
   vignette; death screen with kills and accuracy.
+- **Procedural sound** — no audio files at all. Wind, a sub-bass drone, distant
+  screaming, growls that pan around you, a heartbeat that quickens as you bleed
+  out, ragged breathing when you are winded, gunshots and wet impacts.
+- **Horror grade** — heavy vignette, animated film grain (an inline SVG
+  turbulence filter, so still zero assets), scanlines and a cold colour cast;
+  plus a volumetric torch beam, drifting dust, glowing eyes in the fog, a moon
+  over a dead skyline, and lamps that flicker and die.
 
 ---
 

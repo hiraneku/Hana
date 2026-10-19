@@ -14,13 +14,17 @@ export class Screens {
       <p class="subtitle">They are already outside. Hold the perimeter as long as you can.</p>
       <div class="control-legend">
         <b>Move</b><span>Left stick &nbsp;/&nbsp; W A S D</span>
-        <b>Look</b><span>Right stick &nbsp;/&nbsp; Mouse</span>
-        <b>Shoot</b><span>Fire button &nbsp;/&nbsp; Left click</span>
+        <b>Look</b><span>Right stick &nbsp;/&nbsp; hold right mouse</span>
+        <b>Shoot</b><span>Fire button &nbsp;/&nbsp; left click</span>
         <b>Reload</b><span>Reload button &nbsp;/&nbsp; R</span>
         <b>Run</b><span>Run button &nbsp;/&nbsp; Shift</span>
+        <b>Sound</b><span>M to mute</span>
       </div>
       <button class="btn" id="start-btn" type="button">Enter the outbreak</button>
-      <p class="hint">Best played in landscape with sound on</p>
+      <p class="hint">
+        Landscape, sound on · stuck without a mouse? Hit <b>CONTROLS</b> in the HUD to put the
+        on-screen sticks up
+      </p>
     `
     );
 

@@ -38,9 +38,10 @@ export class Engine {
     );
 
     // Cheap "infinite" world: dense fog hides the draw distance so we can
-    // keep the scene tiny and still feel like a big, dark place.
-    this.scene.fog = new THREE.FogExp2(0x05070a, 0.055);
-    this.scene.background = new THREE.Color(0x05070a);
+    // keep the scene tiny and still feel like a big, dark place. The tint is
+    // a sickly blue-green — the colour of a city that lost power.
+    this.scene.fog = new THREE.FogExp2(0x0a1214, 0.062);
+    this.scene.background = new THREE.Color(0x080e10);
 
     this._loop = this._loop.bind(this);
     this._onResize = () => this.resize();
@@ -88,13 +89,27 @@ export class Engine {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.elapsed += dt;
 
-    for (let i = 0; i < this.updatables.length; i++) {
-      const u = this.updatables[i];
-      if (u.enabled === false) continue;
-      u.update(dt, this.elapsed);
+    // Three re-arms requestAnimationFrame only *after* the callback returns,
+    // so a single thrown exception would freeze the game forever. Never let
+    // one bad frame take the whole session down.
+    try {
+      for (let i = 0; i < this.updatables.length; i++) {
+        const u = this.updatables[i];
+        if (u.enabled === false) continue;
+        u.update(dt, this.elapsed);
+      }
+      this.renderer.render(this.scene, this.camera);
+    } catch (err) {
+      this._errors = (this._errors || 0) + 1;
+      if (this._errors === 1) console.error('[HANA] frame error:', err);
+      if (this._errors > 180) {
+        console.error('[HANA] too many frame errors, stopping loop');
+        this.stop();
+        this.onFatal?.(err);
+        return;
+      }
     }
 
-    this.renderer.render(this.scene, this.camera);
     this._watchPerf(dt);
   }
 

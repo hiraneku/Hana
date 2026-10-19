@@ -12,6 +12,9 @@ export class HUD {
       <div class="hud-top">
         <div class="hud-chip" id="wave-chip"><span class="k">Wave</span><span class="v" id="wave-value">1</span></div>
         <div class="hud-chip" id="score-chip"><span class="k">Score</span><span class="v" id="score-value">0</span></div>
+        <button class="hud-chip hud-toggle" id="controls-btn" type="button">
+          <span class="k">Controls</span><span class="v" id="controls-value">Touch</span>
+        </button>
       </div>
       <div class="hud-bottom">
         <div id="health-block">
@@ -37,9 +40,15 @@ export class HUD {
     this.ammoCount = el.querySelector('#ammo-count');
     this.ammoReserve = el.querySelector('#ammo-reserve');
     this.reloadHint = el.querySelector('#reload-hint');
+    this.controlsBtn = el.querySelector('#controls-btn');
+    this.controlsValue = el.querySelector('#controls-value');
 
     this.banner = this._make('div', 'wave-banner');
     document.body.appendChild(this.banner);
+
+    this.toastEl = this._make('div', 'toast');
+    document.body.appendChild(this.toastEl);
+    this._toastTimer = 0;
 
     this.crosshair = this._make('div', 'crosshair');
     this.crosshair.innerHTML = '<i></i><i></i><i></i><i></i>';
@@ -98,6 +107,17 @@ export class HUD {
     this.waveValue.textContent = String(n);
   }
 
+  onControlsToggle(cb) {
+    this.controlsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cb();
+    });
+  }
+
+  setControlsLabel(mode) {
+    this.controlsValue.textContent = mode === 'touch' ? 'Touch' : 'Mouse';
+  }
+
   setScore(s) {
     this.scoreValue.textContent = String(s);
   }
@@ -108,6 +128,13 @@ export class HUD {
     // Force a reflow so the animation restarts on repeated waves.
     void this.banner.offsetWidth;
     this.banner.classList.add('show');
+  }
+
+  /** Short-lived hint, e.g. "touch controls enabled". */
+  toast(text, seconds = 3.5) {
+    this.toastEl.textContent = text;
+    this.toastEl.classList.add('show');
+    this._toastTimer = seconds;
   }
 
   hitmarker_(isKill) {
@@ -122,6 +149,11 @@ export class HUD {
   }
 
   update(dt) {
+    if (this._toastTimer > 0) {
+      this._toastTimer -= dt;
+      if (this._toastTimer <= 0) this.toastEl.classList.remove('show');
+    }
+
     if (this._damage > 0) {
       this._damage = Math.max(0, this._damage - dt * 1.6);
       this.vignette.style.opacity = String(this._damage * 0.85);
