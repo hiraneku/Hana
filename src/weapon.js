@@ -75,9 +75,9 @@ function makeSteelTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createLinearGradient(0, 0, 256, 0);
-  gradient.addColorStop(0, '#aab1ac');
-  gradient.addColorStop(.48, '#d1d5cf');
-  gradient.addColorStop(1, '#89918c');
+  gradient.addColorStop(0, '#77817b');
+  gradient.addColorStop(.48, '#9ba39d');
+  gradient.addColorStop(1, '#626c66');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 256, 512);
   let seed = 319;
@@ -143,7 +143,7 @@ function createDropPointBlade(parent, materials) {
   ];
   for (const side of [1, -1]) {
     const edgeCurve = new THREE.CatmullRomCurve3(edgePoints.map((point) => new THREE.Vector3(point.x, point.y * side, point.z)));
-    const edge = new THREE.Mesh(new THREE.TubeGeometry(edgeCurve, 28, .0015, 5, false), materials.edge);
+    const edge = new THREE.Mesh(new THREE.TubeGeometry(edgeCurve, 28, .00125, 5, false), materials.edge);
     edge.castShadow = false;
     parent.add(edge);
 
@@ -161,25 +161,29 @@ function createDropPointBlade(parent, materials) {
 
 function buildKnifeHand(parent, materials) {
   const hand = new THREE.Group();
-  // The palm sits behind the handle; four separate curled fingers close around its cross-section.
-  roundedBox(hand, [.124, .135, .105], [0, -.078, .083], materials.glove, .039, 4);
-  roundedBox(hand, [.084, .018, .045], [0, -.126, .09], materials.gloveSeam, .008, 3);
+  // A soft back-of-hand volume sits over the handle while four closely spaced fingers curl underneath it.
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(.5, 18, 14), materials.glove);
+  palm.scale.set(.066, .074, .058);
+  palm.position.set(0, -.005, 0);
+  palm.castShadow = true;
+  palm.receiveShadow = true;
+  hand.add(palm);
 
-  const fingerZ = [-.085, -.046, -.007, .032];
+  // Each finger wraps around the handle, rather than appearing as raised blocks along its spine.
+  const fingerZ = [.02, .044, .068, .092];
   fingerZ.forEach((z, index) => {
-    const offset = index * .0015;
-    addCapsule(hand, [-.018, .024, z], [-.041, -.002, z + .003], .0105, materials.glove);
-    addCapsule(hand, [-.041, -.002, z + .003], [-.044, -.037, z + .007], .010, materials.glove);
-    addCapsule(hand, [-.044, -.037, z + .007], [-.018, -.055, z + .011], .0095, materials.glove);
-    addCapsule(hand, [-.018, -.055, z + .011], [.018, -.045, z + .013], .009, materials.glove);
-    roundedBox(hand, [.017, .011, .018], [-.044, -.008, z + offset], materials.gloveSeam, .005, 2);
+    const radius = index === 0 ? .0105 : .0098;
+    addCapsule(hand, [-.018, .024, z], [-.041, -.002, z + .002], radius, materials.glove);
+    addCapsule(hand, [-.041, -.002, z + .002], [-.044, -.037, z + .005], radius * .96, materials.glove);
+    addCapsule(hand, [-.044, -.037, z + .005], [-.018, -.055, z + .008], radius * .92, materials.glove);
+    addCapsule(hand, [-.018, -.055, z + .008], [.018, -.045, z + .01], radius * .86, materials.glove);
   });
 
-  // Thumb presses across the top of the handle; a stitched pad makes the grip read clearly in profile.
-  addCapsule(hand, [-.052, .018, .103], [-.057, .045, .068], .016, materials.glove);
-  addCapsule(hand, [-.057, .045, .068], [-.031, .034, .025], .015, materials.glove);
-  addCapsule(hand, [-.031, .034, .025], [.006, .004, -.004], .013, materials.glove);
-  roundedBox(hand, [.008, .045, .062], [-.052, .029, .067], materials.gloveSeam, .007, 2);
+  // The thumb lays across the top of the handle, opposing the curled fingers in a natural hammer grip.
+  addCapsule(hand, [-.052, .014, .092], [-.056, .043, .058], .015, materials.glove);
+  addCapsule(hand, [-.056, .043, .058], [-.031, .035, .018], .014, materials.glove);
+  addCapsule(hand, [-.031, .035, .018], [.006, .004, -.012], .0125, materials.glove);
+  addCapsule(hand, [-.049, .028, .072], [-.036, .032, .042], .0022, materials.gloveSeam);
 
   parent.add(hand);
   return hand;
@@ -190,39 +194,36 @@ export function createKnife(camera) {
   const steelTexture = makeSteelTexture();
   const materials = {
     blade: new THREE.MeshPhysicalMaterial({
-      color: 0xe1e5df,
+      color: 0xb6beb7,
       map: steelTexture,
-      metalness: .56,
-      roughness: .25,
-      clearcoat: .28,
-      clearcoatRoughness: .22,
-      emissive: 0x111613,
-      emissiveIntensity: .12,
+      metalness: .43,
+      roughness: .34,
+      clearcoat: .14,
+      clearcoatRoughness: .32,
       side: THREE.DoubleSide,
     }),
-    edge: new THREE.MeshStandardMaterial({ color: 0xe4e8e1, metalness: .48, roughness: .2, emissive: 0x161a16, emissiveIntensity: .12 }),
+    edge: new THREE.MeshStandardMaterial({ color: 0xb9c1ba, metalness: .42, roughness: .3 }),
     fuller: new THREE.MeshStandardMaterial({ color: 0x4b5550, metalness: .55, roughness: .32 }),
     guard: new THREE.MeshStandardMaterial({ color: 0x68716b, metalness: .58, roughness: .35 }),
     bolster: new THREE.MeshStandardMaterial({ color: 0x747d76, metalness: .62, roughness: .31 }),
     handle: new THREE.MeshStandardMaterial({ color: 0x3e4941, map: gripTexture, roughness: .83, metalness: .02 }),
     handlePanel: new THREE.MeshStandardMaterial({ color: 0x303a33, map: gripTexture, roughness: .88, metalness: .015 }),
-    handleGroove: new THREE.MeshStandardMaterial({ color: 0x202923, roughness: .93, metalness: .01 }),
     black: new THREE.MeshStandardMaterial({ color: 0x151b17, roughness: .72, metalness: .05 }),
-    pin: new THREE.MeshStandardMaterial({ color: 0x9ca49b, metalness: .68, roughness: .28 }),
-    glove: new THREE.MeshStandardMaterial({ color: 0x45483d, roughness: .91, metalness: .01 }),
-    gloveSeam: new THREE.MeshStandardMaterial({ color: 0x70715f, roughness: .89, metalness: .01 }),
-    sleeve: new THREE.MeshStandardMaterial({ color: 0x303a35, roughness: .9, metalness: .015 }),
-    cuff: new THREE.MeshStandardMaterial({ color: 0x4a5043, roughness: .84, metalness: .01 }),
+    pin: new THREE.MeshStandardMaterial({ color: 0x6a746d, metalness: .42, roughness: .42 }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x56594b, roughness: .91, metalness: .01 }),
+    gloveSeam: new THREE.MeshStandardMaterial({ color: 0x767866, roughness: .89, metalness: .01 }),
+    sleeve: new THREE.MeshStandardMaterial({ color: 0x424a40, roughness: .9, metalness: .015 }),
+    cuff: new THREE.MeshStandardMaterial({ color: 0x5b614f, roughness: .84, metalness: .01 }),
   };
 
-  const knifeFill = new THREE.PointLight(0xcbd7ce, 2.15, 2.8, 2);
-  knifeFill.position.set(-.14, .38, -.42);
+  const knifeFill = new THREE.PointLight(0xcbd7ce, 1.7, 2.5, 2);
+  knifeFill.position.set(-.12, .32, -.48);
   camera.add(knifeFill);
 
   const weaponRoot = new THREE.Group();
   camera.add(weaponRoot);
-  weaponRoot.position.set(.27, -.18, -.68);
-  weaponRoot.rotation.set(.075, .42, -.13);
+  weaponRoot.position.set(.22, .02, -.75);
+  weaponRoot.rotation.set(.48, .34, -.10);
 
   const knife = new THREE.Group();
   knife.scale.setScalar(.82);
@@ -242,12 +243,8 @@ export function createKnife(camera) {
   roundedBox(knife, [.076, .067, .208], [0, -.064, .12], materials.handle, .021, 4);
   for (const side of [-1, 1]) {
     roundedBox(knife, [.009, .05, .174], [side * .04, -.064, .12], materials.handlePanel, .009, 3);
-    for (let i = 0; i < 5; i++) {
-      const groove = roundedBox(knife, [.0025, .036, .004], [side * .045, -.064, .055 + i * .029], materials.handleGroove, .0015, 2);
-      groove.rotation.y = side * -.08;
-    }
     for (const z of [.054, .174]) {
-      cylinderAlongX(knife, .0052, .004, [side * .045, -.064, z], materials.pin);
+      cylinderAlongX(knife, .0038, .003, [side * .045, -.064, z], materials.pin);
     }
   }
   roundedBox(knife, [.08, .066, .025], [0, -.064, .226], materials.handlePanel, .01, 3);
@@ -289,10 +286,10 @@ export function createKnife(camera) {
     new THREE.Vector3(-.055, -.1, .18),
     new THREE.Vector3(0, 0, 0),
   ], false, 'catmullrom', .18);
-  const readyPosition = new THREE.Vector3(.27, -.18, -.68);
-  const inspectPosition = new THREE.Vector3(.12, -.045, -.64);
-  const readyRotation = new THREE.Euler(.075, .42, -.13);
-  const inspectRotation = new THREE.Euler(-.16, -.18, -.44);
+  const readyPosition = new THREE.Vector3(.22, .02, -.75);
+  const inspectPosition = new THREE.Vector3(.12, .12, -.70);
+  const readyRotation = new THREE.Euler(.48, .34, -.10);
+  const inspectRotation = new THREE.Euler(.42, -.2, -.34);
   const swingPosition = new THREE.Vector3();
   const swingRotation = new THREE.Vector3();
   const attackDuration = .78;
