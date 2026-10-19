@@ -41,7 +41,7 @@ function createStippleTexture() {
   canvas.width = 256;
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#292f30';
+  ctx.fillStyle = '#c7c9bf';
   ctx.fillRect(0, 0, 256, 256);
   let seed = 711;
   const rand = () => {
@@ -50,8 +50,8 @@ function createStippleTexture() {
   };
   for (let y = 3; y < 256; y += 7) {
     for (let x = 3; x < 256; x += 7) {
-      const shade = Math.floor(28 + rand() * 26);
-      ctx.fillStyle = `rgba(${shade},${shade + 4},${shade + 3},${.42 + rand() * .38})`;
+      const shade = Math.floor(68 + rand() * 40);
+      ctx.fillStyle = `rgba(${shade},${shade + 5},${shade + 2},${.48 + rand() * .38})`;
       ctx.beginPath();
       ctx.arc(x + rand() * 2, y + rand() * 2, .6 + rand() * 1.5, 0, Math.PI * 2);
       ctx.fill();
@@ -71,9 +71,9 @@ function createSlideFinishTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   const gradient = ctx.createLinearGradient(0, 0, 512, 256);
-  gradient.addColorStop(0, '#515958');
-  gradient.addColorStop(.48, '#3e4544');
-  gradient.addColorStop(1, '#242b2b');
+  gradient.addColorStop(0, '#929b95');
+  gradient.addColorStop(.48, '#747d78');
+  gradient.addColorStop(1, '#555e59');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 512, 256);
   let seed = 281;
@@ -82,7 +82,7 @@ function createSlideFinishTexture() {
     const y = rand() * 256;
     const x = rand() * 512;
     const length = 5 + rand() * 105;
-    ctx.strokeStyle = rand() > .5 ? `rgba(200,210,201,${.018 + rand() * .08})` : `rgba(3,8,8,${.025 + rand() * .11})`;
+    ctx.strokeStyle = rand() > .5 ? `rgba(235,240,230,${.025 + rand() * .10})` : `rgba(3,8,8,${.025 + rand() * .10})`;
     ctx.lineWidth = .35 + rand() * 1.1;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -288,38 +288,38 @@ function buildSupportHand(parent, material, seamMaterial, scale = .86) {
 export function createG17(camera, scene) {
   const slideFinish = createSlideFinishTexture();
   const materials = {
-    slide: new THREE.MeshStandardMaterial({ color: 0x858d89, map: slideFinish, roughness: .32, metalness: .78 }),
-    slideTop: new THREE.MeshStandardMaterial({ color: 0x202626, roughness: .43, metalness: .67 }),
-    slideEdge: new THREE.MeshStandardMaterial({ color: 0x59625e, roughness: .28, metalness: .83 }),
-    frame: new THREE.MeshStandardMaterial({ color: 0x222929, roughness: .58, metalness: .43 }),
-    frameEdge: new THREE.MeshStandardMaterial({ color: 0x303737, roughness: .48, metalness: .55 }),
-    grip: new THREE.MeshStandardMaterial({ color: 0x222829, map: createStippleTexture(), roughness: .88, metalness: .04 }),
-    gripPanel: new THREE.MeshStandardMaterial({ color: 0x1b2122, map: createStippleTexture(), roughness: .92, metalness: .02 }),
-    gripBack: new THREE.MeshStandardMaterial({ color: 0x151a1b, roughness: .91, metalness: .02 }),
-    gripDot: new THREE.MeshStandardMaterial({ color: 0x313839, roughness: .92, metalness: .01 }),
-    black: new THREE.MeshStandardMaterial({ color: 0x090e0f, roughness: .38, metalness: .6 }),
-    inner: new THREE.MeshStandardMaterial({ color: 0x101515, roughness: .46, metalness: .63 }),
-    white: new THREE.MeshStandardMaterial({ color: 0xd4d9c4, emissive: 0x687254, emissiveIntensity: .4, roughness: .34, metalness: .08 }),
-    magRail: new THREE.MeshStandardMaterial({ color: 0x444b49, roughness: .37, metalness: .74 }),
-    magazine: new THREE.MeshStandardMaterial({ color: 0x202625, roughness: .49, metalness: .53 }),
-    magBase: new THREE.MeshStandardMaterial({ color: 0x181e1d, roughness: .66, metalness: .27 }),
+    slide: new THREE.MeshStandardMaterial({ color: 0xd8ded8, map: slideFinish, roughness: .38, metalness: .68, emissive: 0x0a0e0b, emissiveIntensity: .14 }),
+    slideTop: new THREE.MeshStandardMaterial({ color: 0x39413d, roughness: .43, metalness: .58 }),
+    slideEdge: new THREE.MeshStandardMaterial({ color: 0x7b8580, roughness: .31, metalness: .72 }),
+    frame: new THREE.MeshStandardMaterial({ color: 0x39423c, roughness: .66, metalness: .2 }),
+    frameEdge: new THREE.MeshStandardMaterial({ color: 0x59645c, roughness: .5, metalness: .38 }),
+    grip: new THREE.MeshStandardMaterial({ color: 0x4b554c, map: createStippleTexture(), roughness: .88, metalness: .02 }),
+    gripPanel: new THREE.MeshStandardMaterial({ color: 0x414a42, map: createStippleTexture(), roughness: .92, metalness: .02 }),
+    gripBack: new THREE.MeshStandardMaterial({ color: 0x29322b, roughness: .91, metalness: .02 }),
+    gripDot: new THREE.MeshStandardMaterial({ color: 0x687268, roughness: .92, metalness: .01 }),
+    black: new THREE.MeshStandardMaterial({ color: 0x151b18, roughness: .42, metalness: .45 }),
+    inner: new THREE.MeshStandardMaterial({ color: 0x242b27, roughness: .48, metalness: .54 }),
+    white: new THREE.MeshStandardMaterial({ color: 0xe0e5d1, emissive: 0x7c8760, emissiveIntensity: .42, roughness: .34, metalness: .08 }),
+    magRail: new THREE.MeshStandardMaterial({ color: 0x69736d, roughness: .4, metalness: .66 }),
+    magazine: new THREE.MeshStandardMaterial({ color: 0x364039, roughness: .54, metalness: .38 }),
+    magBase: new THREE.MeshStandardMaterial({ color: 0x29322c, roughness: .68, metalness: .2 }),
     witness: new THREE.MeshBasicMaterial({ color: 0x080d0d, side: THREE.DoubleSide }),
     brass: new THREE.MeshStandardMaterial({ color: 0x8d6238, roughness: .34, metalness: .78 }),
-    glove: new THREE.MeshStandardMaterial({ color: 0x34342e, roughness: .92, metalness: .01 }),
-    gloveSeam: new THREE.MeshStandardMaterial({ color: 0x55554b, roughness: .9, metalness: .01 }),
-    sleeve: new THREE.MeshStandardMaterial({ color: 0x252d2b, roughness: .89, metalness: .02 }),
-    sleeveTrim: new THREE.MeshStandardMaterial({ color: 0x454a40, roughness: .82, metalness: .01 }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x515346, roughness: .92, metalness: .01 }),
+    gloveSeam: new THREE.MeshStandardMaterial({ color: 0x767766, roughness: .9, metalness: .01 }),
+    sleeve: new THREE.MeshStandardMaterial({ color: 0x39433c, roughness: .89, metalness: .02 }),
+    sleeveTrim: new THREE.MeshStandardMaterial({ color: 0x626651, roughness: .82, metalness: .01 }),
   };
 
-  const weaponFill = new THREE.PointLight(0xcbd5c5, 1.15, 2.6, 2);
-  weaponFill.position.set(-.38, .35, -.55);
+  const weaponFill = new THREE.PointLight(0xd7ded1, 2.8, 2.7, 2);
+  weaponFill.position.set(-.16, .38, -.42);
   camera.add(weaponFill);
   const weaponRoot = new THREE.Group();
   camera.add(weaponRoot);
-  weaponRoot.position.set(.34, -.35, -.78);
+  weaponRoot.position.set(.25, -.21, -.78);
   weaponRoot.rotation.set(.015, .017, -.02);
   const gun = new THREE.Group();
-  gun.scale.setScalar(.73);
+  gun.scale.set(.73, .73, .68);
   gun.rotation.y = .018;
   gun.rotation.x = .018;
   weaponRoot.add(gun);
@@ -393,10 +393,13 @@ export function createG17(camera, scene) {
   for (const side of [-1, 1]) {
     // Front and rear chamfer lines.
     roundedBox(slide, [.006, .052, .267], [side * .067, .032, -.104], materials.slideTop, .003, 2);
-    // Deep rear cocking serrations.
+    // Deep rear cocking serrations and shorter front serrations make the slide easier to read in profile.
     for (let i = 0; i < 9; i++) {
       const groove = roundedBox(slide, [.004, .072, .009], [side * .0675, .03, .055 + i * .0105], materials.black, .002, 2);
       groove.rotation.y = side * -.16;
+    }
+    for (let i = 0; i < 5; i++) {
+      roundedBox(slide, [.0045, .044, .007], [side * .0676, .029, -.233 + i * .012], materials.inner, .002, 2);
     }
     // Ejection port and exposed chamber hood.
     roundedBox(slide, [.004, .044, .091], [side * .0677, .044, -.055], materials.black, .007, 3);
@@ -459,12 +462,12 @@ export function createG17(camera, scene) {
   roundedBox(gun, [.111, .028, .026], [0, -.35, .069], materials.frameEdge, .008, 2);
 
   // Right firing hand and sleeve are part of the viewmodel, not a floating gun.
-  const rightArm = makeSegmentGeometry(.076, .11, materials.sleeve);
+  const rightArm = makeSegmentGeometry(.046, .064, materials.sleeve);
   rightArm.scale.y = .58;
   rightArm.position.set(.18, -.43, .28);
   rightArm.rotation.z = -.29;
   gun.add(rightArm);
-  const cuff = roundedBox(gun, [.15, .07, .085], [.038, -.23, .19], materials.sleeveTrim, .025, 3);
+  const cuff = roundedBox(gun, [.12, .06, .075], [.038, -.23, .19], materials.sleeveTrim, .02, 3);
   cuff.rotation.z = -.15;
   const firingHand = buildFiringHand(gun, materials.glove, materials.gloveSeam);
   firingHand.rotation.set(.015, -.015, -.012);
@@ -498,22 +501,30 @@ export function createG17(camera, scene) {
   const casings = [];
 
   // Left supporting forearm / hand, repositioned for reload and inspect choreography.
-  const supportArm = makeSegmentGeometry(.082, .125, materials.sleeve);
+  const supportArm = makeSegmentGeometry(.036, .05, materials.sleeve);
   camera.add(supportArm);
-  const supportCuff = roundedBox(camera, [.13, .07, .08], [0, 0, 0], materials.sleeveTrim, .025, 3);
-  const supportHand = buildSupportHand(camera, materials.glove, materials.gloveSeam, .86);
-  const elbow = new THREE.Vector3(-.5, -1.06, -.48);
-  const supportTargetIdle = new THREE.Vector3(.19, -.455, -.91);
-  const supportTargetInspect = new THREE.Vector3(.10, -.39, -.90);
+  const supportCuff = roundedBox(camera, [.098, .055, .065], [0, 0, 0], materials.sleeveTrim, .018, 3);
+  const supportHand = buildSupportHand(camera, materials.glove, materials.gloveSeam, .78);
+  const elbow = new THREE.Vector3(-.46, -.91, -.50);
+  const supportIdleSocket = new THREE.Object3D();
+  supportIdleSocket.position.set(-.14, -.14, -.21);
+  gun.add(supportIdleSocket);
+  const supportInspectSocket = new THREE.Object3D();
+  supportInspectSocket.position.set(-.12, .025, .08);
+  gun.add(supportInspectSocket);
+  const cameraQuaternion = new THREE.Quaternion();
+  const gunQuaternion = new THREE.Quaternion();
+  const supportHandRotation = new THREE.Quaternion();
+  const supportHandEuler = new THREE.Euler();
 
-  const hipPosition = new THREE.Vector3(.34, -.35, -.78);
+  const hipPosition = new THREE.Vector3(.25, -.21, -.78);
   const adsPosition = new THREE.Vector3(.005, -.084, -.75);
-  const inspectPosition = new THREE.Vector3(.16, -.18, -.72);
+  const inspectPosition = new THREE.Vector3(.13, -.05, -.74);
   const hipRotation = new THREE.Euler(.015, .017, -.02);
   const adsRotation = new THREE.Euler(-.018, -.018, 0);
   const inspectRotation = new THREE.Euler(-.12, -.31, -.18);
   let reloadTimer = 0;
-  let reloadDuration = 1.68;
+  let reloadDuration = 1.72;
   let reloadEmpty = false;
   let inspectTimer = 0;
   let flashTimer = 0;
@@ -552,16 +563,16 @@ export function createG17(camera, scene) {
       return t * t * (3 - 2 * t);
     };
 
-    // Briefly lower and roll the pistol inward, keeping the muzzle controlled and in view.
-    const settle = ease(0, .17, u);
-    const recover = ease(.83, 1, u);
-    const reloadPose = settle * (1 - recover);
-    deltaPosition.x -= .022 * reloadPose;
-    deltaPosition.y -= .055 * reloadPose;
-    deltaPosition.z += .012 * reloadPose;
-    deltaRotation.x += .085 * reloadPose;
-    deltaRotation.y -= .012 * reloadPose;
-    deltaRotation.z += .095 * reloadPose;
+    // Bring the pistol up and inward into the camera's clear center, presenting the magwell rather than hiding it below frame.
+    const raise = ease(0, .18, u);
+    const recover = ease(.86, 1, u);
+    const reloadPose = raise * (1 - recover);
+    deltaPosition.x -= .10 * reloadPose;
+    deltaPosition.y += .21 * reloadPose;
+    deltaPosition.z -= .025 * reloadPose;
+    deltaRotation.x += .045 * reloadPose;
+    deltaRotation.y += .12 * reloadPose;
+    deltaRotation.z += .10 * reloadPose;
 
     // Old magazine leaves the well first; the replacement is then seated in one deliberate upward motion.
     const eject = ease(.24, .40, u);
@@ -605,6 +616,7 @@ export function createG17(camera, scene) {
     if (reloadTimer > 0 || inspectTimer > 0) return false;
     reloadTimer = .0001;
     reloadEmpty = isEmpty;
+    reloadDuration = isEmpty ? 1.95 : 1.72;
     slideRecoil = 0;
     slide.position.z = 0;
     return true;
@@ -702,8 +714,8 @@ export function createG17(camera, scene) {
       const withdrawStart = reloadEmpty ? .79 : .75;
       reloadReach *= 1 - THREE.MathUtils.smoothstep(u, withdrawStart, .96);
       if (reloadEmpty) {
-        slideReleaseReach = THREE.MathUtils.smoothstep(u, .81, .88)
-          * (1 - THREE.MathUtils.smoothstep(u, .92, .99));
+        slideReleaseReach = THREE.MathUtils.smoothstep(u, .79, .86)
+          * (1 - THREE.MathUtils.smoothstep(u, .94, .99));
       }
     }
     const inspectReach = inInspect ? .3 : 0;
@@ -714,11 +726,19 @@ export function createG17(camera, scene) {
     const magHandTarget = tempLocal.clone().add(new THREE.Vector3(0, -.12, .105));
     const releaseWorld = gun.localToWorld(new THREE.Vector3(-.075, .055, .105));
     const releaseHandTarget = camera.worldToLocal(releaseWorld).add(new THREE.Vector3(.025, -.015, .045));
-    const target = supportTargetIdle.clone().lerp(magHandTarget, reloadReach);
+    supportIdleSocket.getWorldPosition(tempWorld);
+    const idleHandTarget = camera.worldToLocal(tempLocal.copy(tempWorld)).clone();
+    supportInspectSocket.getWorldPosition(tempWorld);
+    const inspectHandTarget = camera.worldToLocal(tempLocal.copy(tempWorld)).clone();
+    const target = idleHandTarget.lerp(magHandTarget, reloadReach);
     target.lerp(releaseHandTarget, slideReleaseReach);
-    target.lerp(supportTargetInspect, inspectReach);
+    target.lerp(inspectHandTarget, inspectReach);
     supportHand.position.copy(target);
-    supportHand.rotation.set(.12 + reloadReach * .18 + slideReleaseReach * -.12, -.04, .08 + reloadReach * -.16);
+    supportHandEuler.set(.12 + reloadReach * .18 + slideReleaseReach * -.12, -.04, .08 + reloadReach * -.16);
+    camera.getWorldQuaternion(cameraQuaternion);
+    gun.getWorldQuaternion(gunQuaternion);
+    supportHandRotation.setFromEuler(supportHandEuler);
+    supportHand.quaternion.copy(cameraQuaternion.invert().multiply(gunQuaternion).multiply(supportHandRotation));
     const wrist = target.clone().add(new THREE.Vector3(0, .015, .055));
     setSegment(supportArm, elbow, wrist);
     supportCuff.position.copy(wrist).add(new THREE.Vector3(0, .025, -.02));
