@@ -133,6 +133,17 @@ export class Game {
       },
     });
 
+    this.pc = this.interactables.add({
+      position: this.room.pcPos,
+      radius: 1.9,
+      label: () => (this.room.pcOn ? 'Matikan Komputer' : 'Nyalakan Komputer'),
+      onUse: () => {
+        this.room.setPc(!this.room.pcOn);
+        audio.reloadClick(this.room.pcOn ? 1.1 : 0.8);
+        hud.toast(this.room.pcOn ? 'PC Gaming menyala — RGB aktif' : 'PC dimatikan', 1.8);
+      },
+    });
+
     // The key card lives in the nightstand nearest the window.
     this.drawer = this.interactables.add({
       position: this.room.drawerPos,
@@ -190,6 +201,7 @@ export class Game {
     this.player.reset();
     this.room.setCeilingLight(true);
     this.room.setTv(false);
+    this.room.setPc(true);
 
     this.hasKey = false;
     this.time = 0;
