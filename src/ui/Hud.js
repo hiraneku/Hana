@@ -1,45 +1,45 @@
-import * as THREE from 'three';
-
 /**
- * Every pixel of the in-game interface: health, ammo, wave, score,
- * crosshair, hit-marker and the damage vignette.
+ * Every pixel of the in-game interface: what you are trying to do, what you
+ * are holding, what you can touch right now, and how much breath you have.
+ *
+ * There is no ammo counter and no wave number — you have no gun and nothing
+ * is coming in waves. What is left is an objective and a prompt.
  */
-export class HUD {
+export class Hud {
   constructor() {
     const el = document.createElement('div');
     el.id = 'hud';
     el.innerHTML = `
       <div class="hud-top">
-        <div class="hud-chip" id="wave-chip"><span class="k">Wave</span><span class="v" id="wave-value">1</span></div>
-        <div class="hud-chip" id="score-chip"><span class="k">Score</span><span class="v" id="score-value">0</span></div>
+        <div class="hud-chip" id="objective-chip">
+          <span class="k">Tujuan</span><span class="v" id="objective-value">—</span>
+        </div>
+        <div class="hud-chip" id="key-chip">
+          <span class="k">Kunci</span><span class="v" id="key-value">belum ada</span>
+        </div>
+        <div class="hud-chip sens-chip">
+          <span class="k">Sens</span>
+          <input data-sens type="range" min="0.3" max="2.5" step="0.05" value="1" />
+          <span class="v" data-sens-val>1</span>
+        </div>
         <button class="hud-chip hud-toggle" id="controls-btn" type="button">
-          <span class="k">Controls</span><span class="v" id="controls-value">Touch</span>
+          <span class="k">Kontrol</span><span class="v" id="controls-value">Touch</span>
         </button>
       </div>
       <div class="hud-bottom">
         <div id="health-block">
-          <div class="label"><span>Vitals</span><span id="health-text">100</span></div>
-          <div class="bar"><i id="health-fill"></i></div>
+          <div class="label"><span>Tenaga</span></div>
           <div class="bar thin"><i id="stamina-fill"></i></div>
-        </div>
-        <div id="ammo-block">
-          <div id="ammo-count">12</div>
-          <div id="ammo-reserve">/ 96</div>
-          <div id="reload-hint">Reloading</div>
         </div>
       </div>
     `;
     document.body.appendChild(el);
     this.el = el;
 
-    this.waveValue = el.querySelector('#wave-value');
-    this.scoreValue = el.querySelector('#score-value');
-    this.healthFill = el.querySelector('#health-fill');
-    this.healthText = el.querySelector('#health-text');
+    this.objectiveValue = el.querySelector('#objective-value');
+    this.keyChip = el.querySelector('#key-chip');
+    this.keyValue = el.querySelector('#key-value');
     this.staminaFill = el.querySelector('#stamina-fill');
-    this.ammoCount = el.querySelector('#ammo-count');
-    this.ammoReserve = el.querySelector('#ammo-reserve');
-    this.reloadHint = el.querySelector('#reload-hint');
     this.controlsBtn = el.querySelector('#controls-btn');
     this.controlsValue = el.querySelector('#controls-value');
 
@@ -54,14 +54,14 @@ export class HUD {
     this.crosshair.innerHTML = '<i></i><i></i><i></i><i></i>';
     document.body.appendChild(this.crosshair);
 
-    this.hitmarker = this._make('div', 'hitmarker');
-    document.body.appendChild(this.hitmarker);
+    this.prompt = this._make('div', 'interact-prompt');
+    this.prompt.innerHTML = '<b id="prompt-key">USE</b><span id="prompt-label"></span>';
+    document.body.appendChild(this.prompt);
+    this.promptLabel = this.prompt.querySelector('#prompt-label');
+    this.promptKey = this.prompt.querySelector('#prompt-key');
 
     this.vignette = this._make('div', 'damage-vignette');
     document.body.appendChild(this.vignette);
-
-    this.lowHealth = this._make('div', 'low-health');
-    document.body.appendChild(this.lowHealth);
 
     this.fps = this._make('div', 'fps');
     document.body.appendChild(this.fps);
@@ -82,10 +82,9 @@ export class HUD {
   }
 
   setHealth(hp, max) {
-    const t = THREE.MathUtils.clamp(hp / max, 0, 1);
-    this.healthFill.style.transform = `scaleX(${t})`;
-    this.healthText.textContent = String(Math.max(0, Math.ceil(hp)));
-    this.lowHealth.classList.toggle('on', t > 0 && t <= 0.3);
+    // Nothing in this room can hurt you, so the health readout stays out of
+    // the way; it is here so the player controller has something to call.
+    this.lowHealth?.classList.toggle('on', hp > 0 && hp / max <= 0.3);
   }
 
   setStamina(t, exhausted) {
@@ -95,16 +94,26 @@ export class HUD {
       : 'linear-gradient(90deg, #4b5a2a, #9ad14b)';
   }
 
-  setAmmo(mag, magSize, reserve, reloading) {
-    this.ammoCount.textContent = String(mag);
-    this.ammoCount.classList.toggle('empty', mag === 0);
-    this.ammoReserve.textContent = `/ ${reserve}`;
-    this.reloadHint.textContent = reloading ? 'Reloading' : mag === 0 ? 'Press reload' : '';
-    this.reloadHint.classList.toggle('show', reloading || mag === 0);
+  setObjective(text) {
+    this.objectiveValue.textContent = text;
   }
 
-  setWave(n) {
-    this.waveValue.textContent = String(n);
+  setKey(has) {
+    this.keyValue.textContent = has ? 'ada' : 'belum ada';
+    this.keyChip.classList.toggle('ok', !!has);
+  }
+
+  /** The interact prompt. `text` null hides it. */
+  setPrompt(text) {
+    const show = !!text;
+    this.prompt.classList.toggle('show', show);
+    if (!show) return;
+    if (this.promptLabel.textContent !== text) this.promptLabel.textContent = text;
+  }
+
+  /** Which key to show in the prompt — USE on touch, E on desktop. */
+  setPromptKey(key) {
+    this.promptKey.textContent = key;
   }
 
   onControlsToggle(cb) {
@@ -118,30 +127,19 @@ export class HUD {
     this.controlsValue.textContent = mode === 'touch' ? 'Touch' : 'Mouse';
   }
 
-  setScore(s) {
-    this.scoreValue.textContent = String(s);
-  }
-
   banner_(text) {
     this.banner.textContent = text;
     this.banner.classList.remove('show');
-    // Force a reflow so the animation restarts on repeated waves.
+    // Force a reflow so the animation restarts on repeat banners.
     void this.banner.offsetWidth;
     this.banner.classList.add('show');
   }
 
-  /** Short-lived hint, e.g. "touch controls enabled". */
+  /** Short-lived hint, e.g. "lampu padam". */
   toast(text, seconds = 3.5) {
     this.toastEl.textContent = text;
     this.toastEl.classList.add('show');
     this._toastTimer = seconds;
-  }
-
-  hitmarker_(isKill) {
-    this.hitmarker.classList.remove('pop', 'kill');
-    void this.hitmarker.offsetWidth;
-    this.hitmarker.classList.toggle('kill', !!isKill);
-    this.hitmarker.classList.add('pop');
   }
 
   damageFlash(strength = 1) {

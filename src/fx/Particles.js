@@ -13,6 +13,9 @@ export class Particles {
     this.base = new Float32Array(count * 3);
     this.life = new Float32Array(count);
     this.maxLife = new Float32Array(count);
+    // Per-particle gravity, so dust can hang in the air instead of falling
+    // like a spent shell casing.
+    this.grav = new Float32Array(count);
     this.cursor = 0;
 
     for (let i = 0; i < count; i++) this.pos[i * 3 + 1] = -999;
@@ -37,7 +40,11 @@ export class Particles {
     scene.add(this.points);
   }
 
-  burst(x, y, z, n, color, speed = 3, spread = 1, life = 0.5) {
+  /**
+   * @param {number} [gravity] m/s². Zero for dust hanging in a light beam,
+   *   the default for anything that should fall.
+   */
+  burst(x, y, z, n, color, speed = 3, spread = 1, life = 0.5, gravity = 11) {
     for (let k = 0; k < n; k++) {
       const i = this.cursor;
       this.cursor = (this.cursor + 1) % this.count;
@@ -59,7 +66,13 @@ export class Particles {
       this.base[i3 + 2] = color.b;
 
       this.life[i] = this.maxLife[i] = life * (0.6 + Math.random() * 0.7);
+      this.grav[i] = gravity;
     }
+  }
+
+  /** Dust motes: near enough weightless, so they drift instead of dropping. */
+  motes(x, y, z, n, color, spread = 1, life = 4) {
+    this.burst(x, y, z, n, color, 0.06, spread, life, 0.02);
   }
 
   update(dt) {
@@ -76,7 +89,7 @@ export class Particles {
         continue;
       }
 
-      this.vel[i3 + 1] -= 11 * dt;
+      this.vel[i3 + 1] -= this.grav[i] * dt;
       this.pos[i3] += this.vel[i3] * dt;
       this.pos[i3 + 1] += this.vel[i3 + 1] * dt;
       this.pos[i3 + 2] += this.vel[i3 + 2] * dt;

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "HANA - a mobile-first first-person zombie apocalypse survival shooter that runs in the browser.",
+  "description": "HANA - a mobile-first first-person survival horror set in one luxury apartment room, playable in the browser.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",

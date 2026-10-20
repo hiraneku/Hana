@@ -8,7 +8,8 @@
  *   move.y    forward  -1 (back)  .. 1 (forward)
  *   look.x    yaw delta   (pixels)  — consumed & cleared every frame
  *   look.y    pitch delta (pixels)  — consumed & cleared every frame
- *   firing    trigger held down
+ *   action    interact/use held down
+ *   actionPressed  true only on the frame it went down
  *   sprint    run modifier
  */
 export class Input {
@@ -18,23 +19,27 @@ export class Input {
     // once something inside the frame actually has focus.
     if (domElement) domElement.tabIndex = 0;
     this.move = { x: 0, y: 0 };
-    // `look` is a per-frame pixel delta (mouse). `lookAxis` is a held
-    // direction in -1..1 (thumbstick) that the player turns along over time.
+    // `look` is a per-frame pixel delta — from the mouse on desktop and from
+    // the finger on a phone. Deliberately NOT a held direction: a rate-based
+    // stick keeps turning after you let go, which feels greasy on glass.
     this.look = { x: 0, y: 0 };
-    this.lookAxis = { x: 0, y: 0 };
 
-    // Raw sources. `firing` / `sprint` are re-derived from these every frame,
+    // Raw sources. `action` / `sprint` are re-derived from these every frame,
     // which is what keeps a held button working frame after frame.
     this.mouseFiring = false;
-    this.touchFiring = false;
+    this.touchAction = false;
+    // Set when the USE button comes up. The press is cleared on the next
+    // sample rather than immediately, so a tap faster than one frame still
+    // registers as exactly one action.
+    this.touchActionRelease = false;
     this.touchSprint = false;
     // Right-button drag turns the camera when pointer lock is unavailable
     // (embedded previews, locked-down browsers).
     this.dragging = false;
-    this.firing = false;
+    this.action = false;
+    this.actionPressed = false;
+    this._actionWas = false;
     this.sprint = false;
-    this.reloadQueued = false;
-    this.interactQueued = false;
     this.enabled = false;
 
     this.keys = new Set();
@@ -50,15 +55,16 @@ export class Input {
 
   disable() {
     this.enabled = false;
-    this.firing = false;
+    this.action = false;
+    this.actionPressed = false;
+    this._actionWas = false;
     this.sprint = false;
     this.mouseFiring = false;
-    this.touchFiring = false;
+    this.touchAction = false;
+    this.touchActionRelease = false;
     this.touchSprint = false;
     this.move.x = 0;
     this.move.y = 0;
-    this.lookAxis.x = 0;
-    this.lookAxis.y = 0;
     this.keys.clear();
   }
 
@@ -67,15 +73,13 @@ export class Input {
       if (e.repeat) return;
       const k = e.code;
       this.keys.add(k);
-      if (k === 'KeyR') this.reloadQueued = true;
-      if (k === 'KeyE' || k === 'KeyF') this.interactQueued = true;
       if (k === 'Space') e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => {
       this.keys.clear();
       this.mouseFiring = false;
-      this.touchFiring = false;
+      this.touchAction = false;
       this.touchSprint = false;
     });
   }
@@ -147,6 +151,11 @@ export class Input {
     if (!this.enabled) {
       this.move.x = 0;
       this.move.y = 0;
+      this.touchAction = false;
+      this.touchActionRelease = false;
+      this.action = false;
+      this.actionPressed = false;
+      this._actionWas = false;
       return;
     }
 
@@ -164,14 +173,23 @@ export class Input {
     }
 
     this.sprint = this.touchSprint || this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
-    this.firing = this.mouseFiring || this.touchFiring || this.keys.has('Space');
+
+    // Interact: held state plus a one-frame "just went down" edge, which is
+    // what the game actually acts on so a single tap means one action.
+    this.action =
+      this.touchAction || this.mouseFiring || this.keys.has('KeyE') || this.keys.has('Space');
+    this.actionPressed = this.action && !this._actionWas;
+    this._actionWas = this.action;
+
+    if (this.touchActionRelease) {
+      this.touchAction = false;
+      this.touchActionRelease = false;
+    }
   }
 
   /** Call once per frame after the player consumed the look delta. */
   endFrame() {
     this.look.x = 0;
     this.look.y = 0;
-    this.reloadQueued = false;
-    this.interactQueued = false;
   }
 }

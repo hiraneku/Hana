@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { resolveCircle } from '../world/collision.js';
+import { ROOM_SPAWN } from '../world/Room.js';
 
 const EYE = 1.68;
 const RADIUS = 0.36;
-// Open ground near the middle of the yard, looking north into the fog.
-const SPAWN = { x: 0, z: 9, yaw: 0 };
+// The room owns the spawn point so the two can never drift apart.
+const SPAWN = ROOM_SPAWN;
 const WALK = 3.7;
 const SPRINT = 6.4;
 const ACCEL = 16; // exponential smoothing rate
-const MOUSE_SENS = 0.0023; // radians per pixel
-const TOUCH_TURN = 2.7; // radians per second at full stick
+const MOUSE_SENS = 0.003; // radians per pixel of drag (mouse or finger)
 const PITCH_LIMIT = THREE.MathUtils.degToRad(85);
 const MAX_HEALTH = 100;
 const STAMINA_MAX = 4.5;
@@ -19,9 +19,9 @@ const STAMINA_MAX = 4.5;
  * Works identically with mouse+keyboard and with the on-screen sticks.
  */
 export class Player {
-  constructor(engine, arena, input, hud) {
+  constructor(engine, world, input, hud) {
     this.engine = engine;
-    this.arena = arena;
+    this.world = world;
     this.input = input;
     this.hud = hud;
 
@@ -42,10 +42,13 @@ export class Player {
 
     this.bob = 0;
     this.shake = 0;
-    this.recoilPitch = 0;
-    this.recoilYaw = 0;
+    this.speed = 0;
     this.torchTimer = 1;
     this.torchDip = 0;
+
+    // Scales the look sensitivity. 1 = default; the slider in the menu sets
+    // this, because "too slippery" is a personal thing.
+    this.lookSensitivity = 1;
 
     this.onDeath = null;
 
@@ -97,8 +100,7 @@ export class Player {
     this.alive = true;
     this.dying = 0;
     this.shake = 0;
-    this.recoilPitch = 0;
-    this.recoilYaw = 0;
+    this.speed = 0;
     this.flashlight.intensity = 150;
     this.hud.setHealth(this.health, MAX_HEALTH);
   }
@@ -123,25 +125,17 @@ export class Player {
     this.hud.setHealth(this.health, MAX_HEALTH);
   }
 
-  /** Recoil kick handled by the weapon, applied on top of the look angles. */
-  addRecoil(pitch, yaw = 0) {
-    this.recoilPitch += pitch;
-    this.recoilYaw += yaw;
-  }
-
   update(dt) {
     const input = this.input;
 
     // ---- look -------------------------------------------------------------
-    this.yaw -= input.look.x * MOUSE_SENS;
-    this.pitch -= input.look.y * MOUSE_SENS;
-    this.yaw -= input.lookAxis.x * TOUCH_TURN * dt;
-    this.pitch += input.lookAxis.y * TOUCH_TURN * dt;
+    // One path for mouse and finger alike: a pixel delta, applied straight
+    // to the angles. No acceleration, no inertia — the view goes exactly as
+    // far as you dragged and stops when you stop.
+    const sens = MOUSE_SENS * this.lookSensitivity;
+    this.yaw -= input.look.x * sens;
+    this.pitch -= input.look.y * sens;
     this.pitch = THREE.MathUtils.clamp(this.pitch, -PITCH_LIMIT, PITCH_LIMIT);
-
-    // Recoil springs back to zero.
-    this.recoilPitch *= Math.exp(-9 * dt);
-    this.recoilYaw *= Math.exp(-9 * dt);
 
     // ---- move -------------------------------------------------------------
     let mx = input.move.x;
@@ -190,7 +184,7 @@ export class Player {
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
 
-    const res = resolveCircle(this.arena.colliders, this.pos.x, this.pos.z, RADIUS);
+    const res = resolveCircle(this.world.colliders, this.pos.x, this.pos.z, RADIUS);
     if (res.hit) {
       this.pos.x = res.x;
       this.pos.z = res.z;
@@ -198,6 +192,7 @@ export class Player {
 
     // ---- head bob ---------------------------------------------------------
     const planar = Math.hypot(this.vel.x, this.vel.z);
+    this.speed = planar;
     this.bob += dt * planar * 2.1;
     const bobScale = THREE.MathUtils.clamp(planar / WALK, 0, 1.4);
     const bobY = Math.sin(this.bob * 2) * 0.042 * bobScale;
@@ -221,16 +216,12 @@ export class Player {
     const sy = (Math.random() - 0.5) * s * 0.25;
 
     this.camera.position.set(this.pos.x + bobX + sx, eye + sy, this.pos.z);
-    this.camera.rotation.set(
-      this.pitch + this.recoilPitch,
-      this.yaw + this.recoilYaw,
-      deathRoll
-    );
+    this.camera.rotation.set(this.pitch, this.yaw, deathRoll);
 
     this._flickerTorch(dt);
 
-    // The weapon raycast reads the camera's world transform during the very
-    // same frame, before the renderer gets a chance to refresh it.
+    // Interaction rays and the flashlight read the camera's world transform
+    // during the very same frame, before the renderer refreshes it.
     this.camera.updateMatrixWorld(true);
   }
 }

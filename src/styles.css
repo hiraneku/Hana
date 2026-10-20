@@ -329,7 +329,82 @@ canvas#game-canvas {
   font-variant-numeric: tabular-nums;
 }
 
-#wave-chip .v {
+#objective-chip {
+  flex: 1 1 auto;
+  max-width: 46vw;
+}
+
+#objective-chip .v {
+  font-size: clamp(0.6rem, 2.9vmin, 0.9rem);
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#key-chip .v {
+  font-size: clamp(0.6rem, 2.9vmin, 0.9rem);
+  color: #7d848d;
+}
+
+#key-chip.ok .v {
+  color: var(--toxic);
+}
+
+#key-chip.ok {
+  border-color: rgba(154, 209, 75, 0.45);
+}
+
+/* sensitivity slider, live in the HUD so it can be fixed mid-play */
+.sens-chip {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.3rem 0.55rem;
+}
+
+.sens-chip input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: clamp(3.4rem, 17vmin, 6rem);
+  height: 0.85rem;
+  margin: 0;
+  background: transparent;
+}
+
+.sens-chip input[type='range']::-webkit-slider-runnable-track {
+  height: 2px;
+  background: rgba(216, 219, 224, 0.35);
+}
+
+.sens-chip input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-top: -0.4rem;
+  border-radius: 50%;
+  background: var(--paper);
+  border: none;
+}
+
+.sens-chip input[type='range']::-moz-range-track {
+  height: 2px;
+  background: rgba(216, 219, 224, 0.35);
+}
+
+.sens-chip input[type='range']::-moz-range-thumb {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.sens-chip .v {
+  font-size: clamp(0.55rem, 2.4vmin, 0.7rem);
   color: var(--amber);
 }
 
@@ -465,51 +540,41 @@ canvas#game-canvas {
   margin-bottom: 0.25rem;
 }
 
-/* ammo */
-#ammo-block {
-  text-align: right;
-}
-
-#ammo-count {
-  font-size: clamp(1.6rem, 8vmin, 2.8rem);
-  line-height: 0.95;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.9);
-}
-
-#ammo-count.empty {
-  color: var(--blood);
-  animation: pulse 0.7s ease-in-out infinite;
-}
-
-#ammo-reserve {
-  font-size: clamp(0.6rem, 2.6vmin, 0.8rem);
-  letter-spacing: 0.18em;
-  color: #8d949e;
-}
-
-#reload-hint {
-  font-size: clamp(0.6rem, 2.6vmin, 0.78rem);
-  letter-spacing: 0.2em;
+/* the interact prompt: what USE will do to whatever you are looking at */
+#interact-prompt {
+  position: fixed;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, 0);
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.4em 0.9em;
+  font-size: clamp(0.62rem, 2.9vmin, 0.85rem);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--amber);
-  height: 1.2em;
+  color: var(--paper);
+  background: rgba(5, 7, 10, 0.55);
+  border: 1px solid rgba(216, 219, 224, 0.22);
+  backdrop-filter: var(--hud-blur);
+  white-space: nowrap;
   opacity: 0;
+  transition: opacity 0.14s ease;
+  pointer-events: none;
 }
 
-#reload-hint.show {
+#interact-prompt.show {
   opacity: 1;
-  animation: pulse 0.9s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
+#interact-prompt b {
+  padding: 0.15em 0.5em;
+  font-size: 0.85em;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 2px;
 }
 
 /* crosshair */
@@ -565,63 +630,6 @@ canvas#game-canvas {
   height: 2px;
   width: 32%;
   margin-top: -1px;
-}
-
-#hitmarker {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  width: 3.4vmin;
-  height: 3.4vmin;
-  min-width: 20px;
-  min-height: 20px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  z-index: 23;
-  pointer-events: none;
-  opacity: 0;
-}
-
-#hitmarker::before,
-#hitmarker::after {
-  content: '';
-  position: absolute;
-  background: #fff;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-}
-
-#hitmarker::before {
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  margin-left: -1px;
-}
-
-#hitmarker::after {
-  top: 50%;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  margin-top: -1px;
-}
-
-#hitmarker.pop {
-  animation: hit 0.22s ease-out;
-}
-
-#hitmarker.kill {
-  filter: drop-shadow(0 0 4px var(--blood));
-}
-
-@keyframes hit {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) rotate(45deg) scale(1.5);
-  }
 }
 
 /* damage / low health feedback */
@@ -730,25 +738,21 @@ canvas#game-canvas {
   transform: scale(0.94);
 }
 
-#btn-fire {
-  width: 22vmin;
-  height: 22vmin;
-  max-width: 116px;
-  max-height: 116px;
-  right: calc(var(--safe-r) + 4vmin);
-  bottom: calc(var(--safe-b) + 6vmin);
-  border-color: rgba(179, 18, 27, 0.55);
-  background: rgba(179, 18, 27, 0.22);
+#btn-action {
+  width: 19vmin;
+  height: 19vmin;
+  max-width: 104px;
+  max-height: 104px;
+  right: calc(var(--safe-r) + 5vmin);
+  bottom: calc(var(--safe-b) + 7vmin);
+  border-color: rgba(255, 179, 71, 0.5);
+  background: rgba(255, 179, 71, 0.16);
   font-size: clamp(0.62rem, 2.7vmin, 0.8rem);
 }
 
-#btn-reload {
-  width: 13vmin;
-  height: 13vmin;
-  max-width: 74px;
-  max-height: 74px;
-  right: calc(var(--safe-r) + 27vmin);
-  bottom: calc(var(--safe-b) + 15vmin);
+#btn-action.pressed {
+  background: rgba(255, 179, 71, 0.4);
+  border-color: var(--amber);
 }
 
 #btn-sprint {
@@ -757,22 +761,82 @@ canvas#game-canvas {
   max-width: 74px;
   max-height: 74px;
   right: calc(var(--safe-r) + 6vmin);
-  bottom: calc(var(--safe-b) + 30vmin);
+  bottom: calc(var(--safe-b) + 29vmin);
 }
 
 /* On very short screens (landscape phone) pull the buttons in. */
 @media (max-height: 460px) {
   #btn-sprint {
-    bottom: calc(var(--safe-b) + 24vmin);
+    bottom: calc(var(--safe-b) + 23vmin);
   }
-  #btn-reload {
-    bottom: calc(var(--safe-b) + 10vmin);
+  #btn-action {
+    bottom: calc(var(--safe-b) + 5vmin);
   }
 }
 
 /* Desktop: no on-screen gamepad. */
 body:not(.touch-device) #touch-layer {
   display: none;
+}
+
+.sens-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.4rem 0 1rem;
+  padding: 0.55rem 0.9rem;
+  font-size: clamp(0.6rem, 2.7vmin, 0.78rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a8aeb6;
+  border: 1px solid rgba(216, 219, 224, 0.16);
+  background: rgba(5, 7, 10, 0.45);
+}
+
+.sens-row input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  width: min(46vw, 12rem);
+  height: 1.6rem;
+  margin: 0;
+  background: transparent;
+}
+
+.sens-row input[type='range']::-webkit-slider-runnable-track {
+  height: 2px;
+  background: rgba(216, 219, 224, 0.4);
+}
+
+.sens-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: -0.55rem;
+  border-radius: 50%;
+  background: var(--paper);
+  border: none;
+}
+
+.sens-row input[type='range']::-moz-range-track {
+  height: 2px;
+  background: rgba(216, 219, 224, 0.4);
+}
+
+.sens-row input[type='range']::-moz-range-thumb {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.sens-row b {
+  min-width: 2.4em;
+  text-align: right;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
 }
 
 #debug-panel {

@@ -1,5 +1,5 @@
 /**
- * Full-screen menus: the title card and the death report.
+ * Full-screen menus: the title card and the end report.
  * Both are plain DOM so they stay crisp and cheap on any device.
  */
 export class Screens {
@@ -9,21 +9,28 @@ export class Screens {
     this.start = this._overlay(
       'start-screen',
       `
-      <p class="tagline">Survival Protocol</p>
+      <p class="tagline">Survival · satu kamar</p>
       <h1 class="title">HA<span>NA</span></h1>
-      <p class="subtitle">They are already outside. Hold the perimeter as long as you can.</p>
+      <p class="subtitle">
+        Kamu terbangun di apartemen orang lain. Pintunya terkunci dari luar.
+        Tidak ada siapa-siapa di sini — cuma kota di balik kaca, dan kamu.
+      </p>
       <div class="control-legend">
-        <b>Move</b><span>Left stick &nbsp;/&nbsp; W A S D</span>
-        <b>Look</b><span>Right stick &nbsp;/&nbsp; hold right mouse</span>
-        <b>Shoot</b><span>Fire button &nbsp;/&nbsp; left click</span>
-        <b>Reload</b><span>Reload button &nbsp;/&nbsp; R</span>
-        <b>Run</b><span>Run button &nbsp;/&nbsp; Shift</span>
-        <b>Sound</b><span>M to mute</span>
+        <b>Jalan</b><span>Stick kiri &nbsp;/&nbsp; W A S D</span>
+        <b>Menoleh</b><span>Geser di mana saja di layar &nbsp;/&nbsp; gerakkan mouse</span>
+        <b>Pakai</b><span>Tombol USE &nbsp;/&nbsp; E atau Spasi</span>
+        <b>Lari</b><span>Tombol RUN &nbsp;/&nbsp; Shift</span>
+        <b>Suara</b><span>M</span>
       </div>
-      <button class="btn" id="start-btn" type="button">Enter the outbreak</button>
+      <label class="sens-row" for="sens">
+        <span>Sensitivitas menoleh</span>
+        <input id="sens" data-sens type="range" min="0.3" max="2.5" step="0.05" value="1" />
+        <b id="sens-val" data-sens-val>1</b>
+      </label>
+      <button class="btn" id="start-btn" type="button">Masuk</button>
       <p class="hint">
-        Landscape, sound on · stuck without a mouse? Hit <b>CONTROLS</b> in the HUD to put the
-        on-screen sticks up
+        Miringkan ponsel ke landscape · nyalakan suara · tidak bisa menoleh?
+        Tekan <b>KONTROL</b> di pojok atas untuk memunculkan stick
       </p>
       <p class="build-stamp" id="build-stamp"></p>
     `
@@ -32,29 +39,26 @@ export class Screens {
     this.gameOver = this._overlay(
       'gameover-screen',
       `
-      <h1 class="title">YOU DIED</h1>
-      <p class="subtitle" id="death-line">The horde got in.</p>
+      <h1 class="title">KAMU KELUAR</h1>
+      <p class="subtitle" id="death-line">Kamu berhasil membuka pintu itu.</p>
       <div class="stats">
-        <div class="stat"><span class="k">Waves</span><span class="v" id="go-waves">0</span></div>
-        <div class="stat"><span class="k">Kills</span><span class="v" id="go-kills">0</span></div>
-        <div class="stat"><span class="k">Score</span><span class="v" id="go-score">0</span></div>
-        <div class="stat"><span class="k">Accuracy</span><span class="v" id="go-acc">0%</span></div>
+        <div class="stat"><span class="k">Waktu</span><span class="v" id="go-time">0s</span></div>
+        <div class="stat"><span class="k">Barang diperiksa</span><span class="v" id="go-used">0</span></div>
       </div>
-      <button class="btn" id="retry-btn" type="button">Try again</button>
+      <button class="btn" id="retry-btn" type="button">Ulangi</button>
     `
     );
     this.gameOver.classList.add('hidden');
 
     this.start.querySelector('#start-btn').addEventListener('click', () => this.onStart());
+    this.gameOver.querySelector('#retry-btn').addEventListener('click', () => this.onStart());
 
     const stamp = this.start.querySelector('#build-stamp');
     if (stamp) stamp.textContent = `build ${globalThis.__HANA_BUILD__ || 'dev'}`;
-    this.gameOver.querySelector('#retry-btn').addEventListener('click', () => this.onStart());
+
     this.deathLine = this.gameOver.querySelector('#death-line');
-    this.goWaves = this.gameOver.querySelector('#go-waves');
-    this.goKills = this.gameOver.querySelector('#go-kills');
-    this.goScore = this.gameOver.querySelector('#go-score');
-    this.goAcc = this.gameOver.querySelector('#go-acc');
+    this.goTime = this.gameOver.querySelector('#go-time');
+    this.goUsed = this.gameOver.querySelector('#go-used');
   }
 
   _overlay(id, html) {
@@ -71,12 +75,13 @@ export class Screens {
   }
 
   showGameOver(stats) {
-    this.goWaves.textContent = String(stats.wave);
-    this.goKills.textContent = String(stats.kills);
-    this.goScore.textContent = String(stats.score);
-    const acc = stats.shots ? Math.round((stats.hits / stats.shots) * 100) : 0;
-    this.goAcc.textContent = `${acc}%`;
-    this.deathLine.textContent = DEATH_LINES[Math.floor(Math.random() * DEATH_LINES.length)];
+    const secs = Math.max(0, Math.round(stats.seconds || 0));
+    const mm = Math.floor(secs / 60);
+    const ss = String(secs % 60).padStart(2, '0');
+    this.goTime.textContent = mm ? `${mm}m ${ss}s` : `${ss}s`;
+    this.goUsed.textContent = String(stats.used || 0);
+    if (!stats.escaped) this.deathLine.textContent = 'Kamu tidak pernah sampai ke pintu.';
+    else this.deathLine.textContent = EXIT_LINES[Math.floor(Math.random() * EXIT_LINES.length)];
     this.gameOver.classList.remove('hidden');
   }
 
@@ -85,11 +90,9 @@ export class Screens {
   }
 }
 
-const DEATH_LINES = [
-  'The horde got in.',
-  'You ran out of time.',
-  'They were faster than you.',
-  'Your flashlight died first.',
-  'Nobody is coming.',
-  'The perimeter is gone.',
+const EXIT_LINES = [
+  'Koridor di luar lebih gelap daripada kamar tadi.',
+  'Pintu itu tidak pernah benar-benar dikunci. Kamu cuma tidak mencoba.',
+  'Di belakangmu, televisinya masih menyala.',
+  'Kamu tidak ingat bagaimana kamu bisa masuk.',
 ];

@@ -26,6 +26,7 @@ export class DebugPanel {
     this.time = 0;
     this.fps = 0;
     this.lastError = null;
+    el.__hana = this;
   }
 
   update(dt, game) {
@@ -41,16 +42,17 @@ export class DebugPanel {
     const t = game.touch;
     const i = game.input;
     const f = (n) => (Number.isFinite(n) ? n.toFixed(2) : String(n));
+    const focus = game.interactables?.focus;
 
     this.el.textContent = [
       `HANA build ${BUILD}   ${this.fps} fps`,
-      `state      ${game.state}   wave ${game.wave}  kills ${game.kills}`,
+      `state      ${game.state}   key=${game.hasKey}   t=${f(game.time)}s`,
       `touch      isTouch=${game.engine.isTouch} visible=${t.visible} enabled=${t.enabled} forced=${t.forced}`,
-      `pointers   ${t.pointers.size}   sticks move=${t.moveStick.classList.contains('active') ? 'ON' : 'off'} look=${t.lookStick.classList.contains('active') ? 'ON' : 'off'}`,
-      `move       x=${f(i.move.x)} y=${f(i.move.y)}   look x=${f(i.lookAxis.x)} y=${f(i.lookAxis.y)}`,
-      `buttons    fire=${i.touchFiring} sprint=${i.touchSprint}`,
-      `player     pos ${f(p.pos.x)}, ${f(p.pos.z)}  yaw ${f(p.yaw)}  hp ${Math.round(p.health)}`,
-      `zombies    alive=${game.horde.aliveCount} pooled=${game.horde.pool.length}`,
+      `pointers   ${t.pointers.size}   move stick=${t.moveStick.classList.contains('active') ? 'ON' : 'off'}`,
+      `move       x=${f(i.move.x)} y=${f(i.move.y)}   look x=${f(i.look.x)} y=${f(i.look.y)} px`,
+      `buttons    use=${i.touchAction} sprint=${i.touchSprint}   sens=${f(p.lookSensitivity)}`,
+      `player     pos ${f(p.pos.x)}, ${f(p.pos.z)}  yaw ${f(p.yaw)}  pitch ${f(p.pitch)}`,
+      `room       lights=${game.room?.lightsOn} tv=${game.room?.tvOn}  focus=${focus ? focus.label() : '-'}`,
       `frames     errors=${game.engine._errors || 0}`,
       this.lastError ? `LAST ERROR  ${this.lastError}` : '',
     ]
@@ -73,6 +75,8 @@ export function showErrorBanner(err, fatal = false) {
       document.body.appendChild(el);
     }
     const message = err && err.message ? err.message : String(err);
+    const panel = document.getElementById('debug-panel');
+    if (panel && panel.__hana) panel.__hana.lastError = message;
     el.textContent = fatal
       ? `GAME STOPPED — ${message}\nBuild ${BUILD} · reload to try again`
       : `Error (game still running): ${message}`;
